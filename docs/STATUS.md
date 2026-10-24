@@ -1,6 +1,6 @@
 # Status
 
-The pilot is being built from `docs/PLAN.md`. Done so far: Phase 1.
+The pilot is being built from `docs/PLAN.md`. Done so far: Phases 1 and 2.
 
 ## Backend
 
@@ -15,6 +15,14 @@ Operations:
 - `get_instructions`: `GET /api/instructions`, the agent's instructions from `backend/instructions.md`
 - `list_handlers`: `GET /api/handlers`
 - `get_settings`: `GET /api/settings`, the $1,000 approval limit
+- `run_agent`: `POST /api/claims/{claim_id}/run`, starts the agent on a waiting claim in the background (202)
+- `add_step`: `POST /api/claims/{claim_id}/steps`, a step of a run in progress
+- `finish_run`: `POST /api/claims/{claim_id}/finish`, ends a run; with no decision the claim goes back to waiting
+- `record_decision`: `POST /api/claims/{claim_id}/decision`, approve (payout above 0), decline or refer (payout 0), once, during a run
+- `pay_claim`: `POST /api/claims/{claim_id}/payment`, the approved payout exactly; refused (409) over $1,000 until signed off
+- `sign_off`: `POST /api/claims/{claim_id}/sign-off`, a handler who may approve over the limit signs off and the claim is paid
+
+Status is worked out from the record: `waiting`, `in_progress`, `awaiting_signoff` (approved over the limit, not signed off) or `decided`. Payments are recorded only; no money moves.
 
 ## Agent and dashboard
 

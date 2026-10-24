@@ -113,7 +113,7 @@ Success criteria:
 
 ## Phase 2: Decisions, sign-off and the payment rule
 
-- `start_run` and `finish_run`, which the agent calls at either end of a run.
+- `run_agent` starts a run (it marks the claim in progress before it returns, so two clicks can't start two runs) and `finish_run` ends it. Changed while building: the plan had a separate `start_run` for the agent to call, which left a gap between the click and the claim showing in progress.
 - `add_step`.
 - `record_decision`: outcome (`approve`, `decline` or `refer`), payout, reason, policy section, all required. An approve has a payout above 0; a decline or refer has payout 0.
 - `pay_claim`: amount.
@@ -121,25 +121,25 @@ Success criteria:
 
 Success criteria:
 
-- [ ] Tests on the payment rules:
+- [x] Tests on the payment rules:
   - an approve for $420.00 can be paid, and the claim is `decided` and paid
   - paying it a second time returns 409
-- [ ] Tests on the over-limit rule:
+- [x] Tests on the over-limit rule:
   - an approve for $1,250.00 shows `awaiting_signoff`, and `pay_claim` for 1250.0 returns 409 with the claim still unpaid
   - `sign_off` by `HND-01` makes it `decided` and paid for $1,250.00
-- [ ] Tests on sign-off:
+- [x] Tests on sign-off:
   - a handler without `can_approve_over_limit` gets 403, and an unknown handler gets 404
   - `sign_off` on a claim that is not `awaiting_signoff` returns 409
-- [ ] Tests on bad payments, each returning 409:
+- [x] Tests on bad payments, each returning 409:
   - an amount that differs from the payout
   - a declined claim
   - a referred claim
   - a claim with no decision
-- [ ] Tests on validation:
+- [x] Tests on validation:
   - an unknown outcome, an approve with payout 0 or a decline with a payout returns 422
   - `start_run` on a claim already `in_progress` returns 409
-- [ ] Tests on runs: `finish_run` with no decision returns the claim to `waiting`.
-- [ ] `npm run check:python` passes.
+- [x] Tests on runs: `finish_run` with no decision returns the claim to `waiting`.
+- [x] `npm run check:python` passes.
 
 ## Phase 3: The UnderCover Agent
 

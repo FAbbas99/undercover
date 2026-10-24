@@ -2,19 +2,56 @@
 
 import json
 import sqlite3
-from collections.abc import Iterator
+import uuid
+from collections.abc import Callable, Iterator
 from contextlib import closing
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal, Self
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from pydantic import BaseModel, model_validator
 
+from agent.main import run
 from backend.db import connect, record, records
 
 INSTRUCTIONS = Path(__file__).parent / "instructions.md"
 CUSTOMER_FIELDS = ("customer_id", "name", "customer_since", "previous_claims")
 
 app = FastAPI(title="UnderCover")
+
+Runner = Callable[[str, str], object]
+
+
+class Decision(BaseModel):
+    outcome: Literal["approve", "decline", "refer"]
+    payout: float
+    reason: str
+    policy_section: str
+
+    @model_validator(mode="after")
+    def payout_matches_outcome(self) -> Self:
+        if self.outcome == "approve" and self.payout <= 0:
+            raise ValueError("An approval needs a payout above 0")
+        if self.outcome != "approve" and self.payout != 0:
+            raise ValueError("A decline or a referral has a payout of 0")
+        return self
+
+
+class Payment(BaseModel):
+    amount: float
+
+
+class SignOff(BaseModel):
+    handler_id: str
+
+
+class Step(BaseModel):
+    name: str
+    detail: str
+
+
+class Finish(BaseModel):
+    note: str
 
 
 def database() -> Iterator[sqlite3.Connection]:
@@ -142,3 +179,124 @@ def list_handlers(conn: Db) -> list[dict[str, Any]]:
 def get_settings(conn: Db) -> dict[str, float]:
     """Get the payout approval limit."""
     return {"payout_approval_limit": approval_limit(conn)}
+
+
+def agent_runner() -> Runner:
+    """Return the function that runs the agent on a claim."""
+    return run
+
+
+def require(condition: bool, message: str) -> None:
+    """Refuse the request with 409 unless the condition holds."""
+    if not condition:
+        raise HTTPException(409, message)
+
+
+def add_step_row(
+    conn: sqlite3.Connection, claim_id: str, name: str, detail: str
+) -> None:
+    """Record one step of a run."""
+    conn.execute(
+        "INSERT INTO steps (claim_id, name, detail) VALUES (?, ?, ?)",
+        (claim_id, name, detail),
+    )
+
+
+@app.post("/api/claims/{claim_id}/run", operation_id="run_agent", status_code=202)
+def run_agent(
+    claim_id: str,
+    conn: Db,
+    tasks: BackgroundTasks,
+    runner: Annotated[Runner, Depends(agent_runner)],
+) -> dict[str, Any]:
+    """Start the UnderCover Agent on a waiting claim."""
+    row = claim_row(conn, claim_id)
+    require(status(conn, row) == "waiting", f"{claim_id} is not waiting")
+    conn.execute("UPDATE claims SET in_progress = 1 WHERE claim_id = ?", (claim_id,))
+    add_step_row(conn, claim_id, "started", "The agent started work on the claim")
+    conn.commit()
+    tasks.add_task(runner, claim_id, str(uuid.uuid4()))
+    return claim_view(conn, claim_row(conn, claim_id))
+
+
+@app.post("/api/claims/{claim_id}/steps", operation_id="add_step")
+def add_step(claim_id: str, step: Step, conn: Db) -> dict[str, str]:
+    """Record a step the agent took on a claim in progress."""
+    row = claim_row(conn, claim_id)
+    require(row["in_progress"], f"{claim_id} is not in progress")
+    add_step_row(conn, claim_id, step.name, step.detail)
+    conn.commit()
+    return {"status": "recorded"}
+
+
+@app.post("/api/claims/{claim_id}/finish", operation_id="finish_run")
+def finish_run(claim_id: str, finish: Finish, conn: Db) -> dict[str, Any]:
+    """End the agent's run on a claim, with a closing note."""
+    row = claim_row(conn, claim_id)
+    require(row["in_progress"], f"{claim_id} is not in progress")
+    add_step_row(conn, claim_id, "finished", finish.note)
+    conn.execute("UPDATE claims SET in_progress = 0 WHERE claim_id = ?", (claim_id,))
+    conn.commit()
+    return claim_view(conn, claim_row(conn, claim_id))
+
+
+@app.post("/api/claims/{claim_id}/decision", operation_id="record_decision")
+def record_decision(claim_id: str, decision: Decision, conn: Db) -> dict[str, Any]:
+    """Record the agent's decision on a claim: approve, decline or refer."""
+    row = claim_row(conn, claim_id)
+    require(row["in_progress"], f"{claim_id} is not in progress")
+    require(row["outcome"] is None, f"{claim_id} already has a decision")
+    conn.execute(
+        "UPDATE claims SET outcome = ?, payout = ?, reason = ?, policy_section = ?"
+        " WHERE claim_id = ?",
+        (
+            decision.outcome,
+            round(decision.payout, 2),
+            decision.reason,
+            decision.policy_section,
+            claim_id,
+        ),
+    )
+    conn.commit()
+    return claim_view(conn, claim_row(conn, claim_id))
+
+
+@app.post("/api/claims/{claim_id}/payment", operation_id="pay_claim")
+def pay_claim(claim_id: str, payment: Payment, conn: Db) -> dict[str, Any]:
+    """Pay an approved claim its payout; over the limit it needs a sign-off first."""
+    row = claim_row(conn, claim_id)
+    require(row["outcome"] == "approve", f"{claim_id} is not approved")
+    require(row["paid_amount"] is None, f"{claim_id} is already paid")
+    require(
+        round(payment.amount, 2) == row["payout"],
+        f"The amount must be the approved payout, {row['payout']:.2f}",
+    )
+    require(
+        row["payout"] <= approval_limit(conn),
+        f"A payout over {approval_limit(conn):,.2f} waits for a handler's sign-off",
+    )
+    conn.execute(
+        "UPDATE claims SET paid_amount = payout WHERE claim_id = ?", (claim_id,)
+    )
+    conn.commit()
+    return claim_view(conn, claim_row(conn, claim_id))
+
+
+@app.post("/api/claims/{claim_id}/sign-off", operation_id="sign_off")
+def sign_off(claim_id: str, sign: SignOff, conn: Db) -> dict[str, Any]:
+    """Sign off an approval over the limit as a handler, which pays the claim."""
+    row = claim_row(conn, claim_id)
+    handler = record(conn, "handler", sign.handler_id)
+    if handler is None:
+        raise HTTPException(404, f"No handler {sign.handler_id}")
+    if not handler["can_approve_over_limit"]:
+        raise HTTPException(403, f"{handler['name']} cannot approve over the limit")
+    require(
+        status(conn, row) == "awaiting_signoff", f"{claim_id} is not awaiting sign-off"
+    )
+    conn.execute(
+        "UPDATE claims SET signed_off_by = ?, paid_amount = payout WHERE claim_id = ?",
+        (sign.handler_id, claim_id),
+    )
+    conn.commit()
+    return claim_view(conn, claim_row(conn, claim_id))
