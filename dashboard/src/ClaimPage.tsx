@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { RunPanel, SignOffPanel, StepsPanel } from "./AgentPanels";
 import { getClaim, type Claim } from "./api";
 import { OUTCOME_LABELS, label, message, money } from "./format";
 import { StatusPill } from "./Queue";
+
+const POLL_MS = 1000;
 
 function Story({ claim }: Readonly<{ claim: Claim }>) {
   return (
@@ -176,11 +179,21 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
   const [claim, setClaim] = useState<Claim | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const inProgress = claim?.status === "in_progress";
+
   useEffect(() => {
-    getClaim(claimId).then(setClaim, (failure: unknown) => {
-      setError(message(failure));
-    });
-  }, [claimId]);
+    const load = () => {
+      getClaim(claimId).then(setClaim, (failure: unknown) => {
+        setError(message(failure));
+      });
+    };
+    load();
+    if (!inProgress) return;
+    const timer = setInterval(load, POLL_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [claimId, inProgress]);
 
   if (error) return <p className="error">Could not load the claim: {error}</p>;
   if (!claim) return <p className="muted">Loading {claimId}</p>;
@@ -198,7 +211,14 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
         {label(claim.claim_type)}, {claim.summary}. Claimed{" "}
         <span className="mono">{money(claim.amount_claimed)}</span>
       </p>
+      {claim.status === "waiting" && (
+        <RunPanel claim={claim} onChange={setClaim} />
+      )}
+      {claim.status === "awaiting_signoff" && (
+        <SignOffPanel claim={claim} onChange={setClaim} />
+      )}
       <DecisionPanel claim={claim} />
+      <StepsPanel claim={claim} />
       <div className="grid">
         <Story claim={claim} />
         <Items claim={claim} />

@@ -142,8 +142,6 @@ function post<T>(path: string, body: unknown): Promise<T> {
 export const listClaims = () => request<ClaimSummary[]>("/api/claims");
 export const getClaim = (id: string) => request<Claim>(`/api/claims/${id}`);
 export const listHandlers = () => request<Handler[]>("/api/handlers");
-export const getSettings = () =>
-  request<{ payout_approval_limit: number }>("/api/settings");
 export const getInstructions = () =>
   request<{ text: string }>("/api/instructions");
 export const runAgent = (id: string) =>

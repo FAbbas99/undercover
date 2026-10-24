@@ -4,6 +4,7 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 
 from agent import main
+from agent.tests.e2e_server import ScriptedModel
 from backend.main import agent_runner, app
 
 client = TestClient(app)
@@ -158,3 +159,12 @@ def test_model_name(monkeypatch):
     assert main.model().model_name == "openai/gpt-6-luna"
     monkeypatch.setenv("MODEL_NAME", "openrouter/free")
     assert main.model().model_name == "openrouter/free"
+
+
+def test_the_e2e_scripted_model():
+    paid = run_with("CLM-1001", ScriptedModel(step_seconds=0))
+    assert paid["status"] == "decided"
+    assert paid["payment"] == {"amount": 420.0, "signed_off_by": None}
+    held = run_with("CLM-1002", ScriptedModel(step_seconds=0))
+    assert held["status"] == "awaiting_signoff"
+    assert held["decision"]["payout"] == 1150.0

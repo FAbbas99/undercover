@@ -1,6 +1,6 @@
 # Status
 
-The pilot is being built from `docs/PLAN.md`. Done so far: Phases 1 to 4.
+The pilot is being built from `docs/PLAN.md`. Done so far: Phases 1 to 5.
 
 ## Backend
 
@@ -35,7 +35,15 @@ If the backend restarts during a run, the claim stays in progress; `uv run -m ba
 React, Vite and TypeScript in `dashboard/`, in the brand's fonts and colors, light or dark with the system setting.
 
 - Queue (`#/`): counts for each status, a status filter, and every claim with its customer, type, summary, date, amount and status. It refreshes every two seconds.
-- Claim (`#/claims/CLM-1001`): the decision with its reason and policy section, the payment, the customer's story, the items, the policy and plan, the customer's earlier claims and the documents.
+- Claim (`#/claims/CLM-1001`):
+  - a Run agent button on a waiting claim
+  - the agent's steps, updated every second while it works
+  - a sign-off panel when an approval over $1,000 waits: choose a handler who may approve over the limit, and the claim is paid
+  - the decision with its reason and policy section, and the payment
+  - the customer's story, the items, the policy and plan, the customer's earlier claims and the documents
+- Agent instructions (`#/instructions`): read only.
+
+`npm run e2e:serve` starts a separate backend on port 8001, with a fresh database and a scripted model that never calls a real one, and a dashboard on http://localhost:5174 that uses it.
 
 ## Running it
 
