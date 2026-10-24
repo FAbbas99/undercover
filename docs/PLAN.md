@@ -180,19 +180,20 @@ Success criteria:
 
 Success criteria:
 
-- [ ] vitest tests with a stubbed `fetch`:
+- [x] vitest tests with a stubbed `fetch`:
   - the queue renders every claim with its status, and the counts match
   - the filter narrows the list
   - the claim page shows the decision, reason and policy section
   - money renders as `$1,250.00`
-- [ ] In the browser, with the Playwright MCP server at `http://localhost:5173`:
+- [x] In the browser, with the Playwright MCP server at `http://localhost:5173`:
   - the queue shows 25 claims and the counts `Waiting 25`
   - opening `CLM-1001` shows its story, three items, documents, plan and previous claim `CLM-0412`
-- [ ] In the browser, screenshots in light and dark mode:
+- [x] In the browser, screenshots in light and dark mode:
   - the page backgrounds are `#F0F4F5` and `#04232E`
   - headings use Instrument Sans and amounts use JetBrains Mono
   - panels have no border
-- [ ] `npm run check:ts` passes with coverage of 80% or more.
+- [x] `npm run check:ts` passes with coverage of 80% or more.
+- Checked in the browser: 25 rows and `Waiting 25`; backgrounds `rgb(240, 244, 245)` and `rgb(4, 35, 46)`, panels white and black with a 16px radius, no element with a border, and Instrument Sans and JetBrains Mono loaded. The status that the spec calls "waiting for sign-off" is labeled that way on screen. Screenshots are in `.playwright-mcp/`.
 
 ## Phase 5: Run, live steps, sign-off and instructions
 

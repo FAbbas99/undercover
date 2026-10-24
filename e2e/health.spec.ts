@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("the dashboard shows the backend is up", async ({ page }) => {
+test("the dashboard loads the queue from the backend", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("Backend: up")).toBeVisible();
+  await expect(page.getByRole("link", { name: "CLM-1001" })).toBeVisible();
 });

@@ -1,6 +1,6 @@
 # Status
 
-The pilot is being built from `docs/PLAN.md`. Done so far: Phases 1 to 3.
+The pilot is being built from `docs/PLAN.md`. Done so far: Phases 1 to 4.
 
 ## Backend
 
@@ -32,7 +32,10 @@ If the backend restarts during a run, the claim stays in progress; `uv run -m ba
 
 ## Dashboard
 
-Still the skeleton: a page that shows whether the backend is up.
+React, Vite and TypeScript in `dashboard/`, in the brand's fonts and colors, light or dark with the system setting.
+
+- Queue (`#/`): counts for each status, a status filter, and every claim with its customer, type, summary, date, amount and status. It refreshes every two seconds.
+- Claim (`#/claims/CLM-1001`): the decision with its reason and policy section, the payment, the customer's story, the items, the policy and plan, the customer's earlier claims and the documents.
 
 ## Running it
 

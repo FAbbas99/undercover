@@ -1,19 +1,43 @@
 import { useEffect, useState } from "react";
+import { ClaimPage } from "./ClaimPage";
+import { Queue } from "./Queue";
+
+function useHash(): string {
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const onChange = () => {
+      setHash(window.location.hash);
+    };
+    window.addEventListener("hashchange", onChange);
+    return () => {
+      window.removeEventListener("hashchange", onChange);
+    };
+  }, []);
+  return hash;
+}
+
+function Page({ hash }: Readonly<{ hash: string }>) {
+  const claim = /^#\/claims\/([\w-]+)$/.exec(hash);
+  if (claim) return <ClaimPage claimId={claim[1]} key={claim[1]} />;
+  return <Queue />;
+}
 
 export function App() {
-  const [status, setStatus] = useState("checking");
-
-  useEffect(() => {
-    void fetch("/api/health")
-      .then((response) => (response.ok ? "up" : "down"))
-      .catch(() => "down")
-      .then(setStatus);
-  }, []);
-
+  const hash = useHash();
   return (
-    <main>
-      <h1>UnderCover</h1>
-      <p>Backend: {status}</p>
-    </main>
+    <div className="page">
+      <header className="header">
+        <p className="brand">
+          <a href="#/">UnderCover Claims</a>
+          <span className="tagline">The claims queue</span>
+        </p>
+        <nav className="nav" aria-label="Main">
+          <a href="#/">Queue</a>
+        </nav>
+      </header>
+      <main>
+        <Page hash={hash} />
+      </main>
+    </div>
   );
 }
