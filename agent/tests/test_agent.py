@@ -168,3 +168,10 @@ def test_the_e2e_scripted_model():
     held = run_with("CLM-1002", ScriptedModel(step_seconds=0))
     assert held["status"] == "awaiting_signoff"
     assert held["decision"]["payout"] == 1150.0
+
+
+def test_rate_limited_calls_are_retried_for_about_a_minute(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    llm = main.model()
+    assert llm.max_retries == main.MAX_RETRIES
+    assert llm.root_client.max_retries == main.MAX_RETRIES
