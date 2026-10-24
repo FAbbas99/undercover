@@ -1,6 +1,6 @@
 # Status
 
-The pilot is being built from `docs/PLAN.md`. Done so far: Phases 1 and 2.
+The pilot is being built from `docs/PLAN.md`. Done so far: Phases 1 to 3.
 
 ## Backend
 
@@ -24,11 +24,18 @@ Operations:
 
 Status is worked out from the record: `waiting`, `in_progress`, `awaiting_signoff` (approved over the limit, not signed off) or `decided`. Payments are recorded only; no money moves.
 
-## Agent and dashboard
+## Agent
 
-Still the hello-world skeleton: `run(claim_id, thread_id)` with one tool, and a page that shows whether the backend is up.
+`agent/main.py`: `run(claim_id, thread_id)` on LangChain's `create_agent`, with `openai/gpt-6-luna` at low reasoning effort, or `MODEL_NAME` if set. It reads its instructions from `get_instructions` and has four tools, each a call to the backend: `get_claim`, `get_policy_wording`, `record_decision` and `pay_claim`. A callback records each tool call as a step. The run always ends with `finish_run`; if the model fails, the error is the last step and the claim goes back to waiting. The backend starts it from `run_agent`.
+
+If the backend restarts during a run, the claim stays in progress; `uv run -m backend.reset` starts the queue over.
+
+## Dashboard
+
+Still the skeleton: a page that shows whether the backend is up.
 
 ## Running it
 
 - `uv sync` and `npm install`, then `npm run dev`: backend on http://127.0.0.1:8000, dashboard on http://localhost:5173
+- Run the agent on a claim: `curl -X POST http://127.0.0.1:8000/api/claims/CLM-1001/run`, then `GET /api/claims/CLM-1001`
 - `npm run check`: every check

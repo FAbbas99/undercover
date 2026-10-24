@@ -1,5 +1,6 @@
 import builtins
 import runpy
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -137,3 +138,10 @@ def test_every_operation_is_documented_with_no_optional_inputs():
                 ref = body["content"]["application/json"]["schema"]["$ref"]
                 model = schema_of(schema, ref)
                 assert set(model["required"]) == set(model["properties"]), path
+
+
+def test_a_connection_works_across_threads():
+    conn = connect()
+    with ThreadPoolExecutor(1) as pool:
+        result = pool.submit(lambda: conn.execute("SELECT 1").fetchone()[0]).result()
+    assert result == 1

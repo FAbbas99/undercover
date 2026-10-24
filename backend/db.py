@@ -86,7 +86,8 @@ def seed(conn: sqlite3.Connection) -> None:
 
 def connect() -> sqlite3.Connection:
     """Open the database, creating and seeding it on first use."""
-    conn = sqlite3.connect(db_path())
+    # FastAPI may open a request's connection and use it in different threads.
+    conn = sqlite3.connect(db_path(), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     if not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'claims'").fetchone():
         seed(conn)

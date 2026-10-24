@@ -152,18 +152,20 @@ Success criteria:
 
 Success criteria:
 
-- [ ] Stub tests, each run against the real backend app in-process:
+- [x] Stub tests, each run against the real backend app in-process:
   - an approve of $420.00 with a payment ends `decided` and paid, with a step for each tool call, in order
   - an approve of $1,250.00 followed by `pay_claim` gets the payment refused (the tool returns the 409 to the model), and the claim ends `awaiting_signoff` and unpaid
   - a decline and a refer each record the reason and policy section, with no payment
   - a model that raises leaves the claim `waiting`, with the error as its last step
-- [ ] A test: the system prompt the agent uses is the text served by `GET /api/instructions`.
-- [ ] A test: `run_agent` returns 202, and a second call while the claim is `in_progress` returns 409.
-- [ ] `npm run check:python` passes.
-- [ ] One live check, with `OPENROUTER_API_KEY` in `.env` (about a cent; set `MODEL_NAME=openrouter/free` for no cost):
+- [x] A test: the system prompt the agent uses is the text served by `GET /api/instructions`.
+- [x] A test: `run_agent` returns 202, and a second call while the claim is `in_progress` returns 409.
+- [x] `npm run check:python` passes.
+- [x] One live check, with `OPENROUTER_API_KEY` in `.env` (about a cent; set `MODEL_NAME=openrouter/free` for no cost):
   - with the dev servers running, `curl -X POST http://127.0.0.1:8000/api/claims/CLM-1001/run`, then `GET /api/claims/CLM-1001`, shows a decision, payout, reason, policy section and steps
   - I report what it decided
   - I don't score it against `data/evals/`, which is for later and opened only when you ask
+- Result of the live check (`openai/gpt-6-luna`): CLM-1001 approved for $420.00 under "3. Trip Delay" and paid, with the steps `started`, `get_claim`, `get_policy_wording`, `record_decision`, `pay_claim`, `finished`.
+- Found and fixed while checking: `npm run dev` reloaded only on changes to `backend/`, so it ran a stale agent; it now watches `agent/` too. Two steps were lost to a SQLite error when the agent made two tool calls at once (a connection opened in one thread and used in another); connections now allow that, with a test.
 
 ## Phase 4: Dashboard foundations, queue and claim page
 
