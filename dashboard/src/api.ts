@@ -9,6 +9,8 @@ export interface ClaimSummary {
   summary: string;
   amount_claimed: number;
   submitted_on: string;
+  outcome: Outcome | null;
+  payout: number | null;
 }
 
 export interface Item {

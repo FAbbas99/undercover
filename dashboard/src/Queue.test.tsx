@@ -16,7 +16,7 @@ it("lists every claim with its status and amount", async () => {
   render(<Queue />);
   await screen.findByText("CLM-1001");
   expect(rows()).toHaveLength(3);
-  expect(screen.getByText("$1,250.00")).toBeDefined();
+  expect(screen.getAllByText("$1,250.00")).toHaveLength(2);
   expect(screen.getByText("Trip delay")).toBeDefined();
   expect(
     screen.getByRole("link", { name: "CLM-1002" }).getAttribute("href"),
@@ -63,4 +63,19 @@ it("says when the queue cannot load", async () => {
       "Could not load the queue: No route GET /api/claims",
     ),
   ).toBeDefined();
+});
+
+it("shows each claim's decision and payout", async () => {
+  stubApi({ "GET /api/claims": summaries });
+  render(<Queue />);
+  await screen.findByText("CLM-1001");
+  const cells = (claimId: string) =>
+    Array.from(
+      screen.getByRole("link", { name: claimId }).closest("tr")?.cells ?? [],
+    )
+      .slice(-2)
+      .map((cell) => cell.textContent);
+  expect(cells("CLM-1001")).toEqual(["", ""]);
+  expect(cells("CLM-1002")).toEqual(["Approved", "$1,250.00"]);
+  expect(cells("CLM-1003")).toEqual(["Referred", "$0.00"]);
 });

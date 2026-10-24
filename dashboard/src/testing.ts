@@ -10,6 +10,8 @@ export const summaries: ClaimSummary[] = [
     summary: "Flight home canceled",
     amount_claimed: 420,
     submitted_on: "2026-06-24",
+    outcome: null,
+    payout: null,
   },
   {
     claim_id: "CLM-1002",
@@ -19,6 +21,8 @@ export const summaries: ClaimSummary[] = [
     summary: "Suitcase stolen",
     amount_claimed: 1250,
     submitted_on: "2026-06-25",
+    outcome: "approve",
+    payout: 1250,
   },
   {
     claim_id: "CLM-1003",
@@ -28,6 +32,8 @@ export const summaries: ClaimSummary[] = [
     summary: "Broken wrist",
     amount_claimed: 3800,
     submitted_on: "2026-06-26",
+    outcome: "refer",
+    payout: 0,
   },
 ];
 

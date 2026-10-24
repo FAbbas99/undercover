@@ -23,6 +23,8 @@ def test_list_claims():
         "summary": "Flight home canceled by the airline, rebooked the next morning",
         "amount_claimed": 420.0,
         "submitted_on": "2026-06-24",
+        "outcome": None,
+        "payout": None,
     }
 
 

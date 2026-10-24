@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { listClaims, type ClaimSummary, type Status } from "./api";
-import { STATUS_LABELS, STATUSES, label, message, money } from "./format";
+import {
+  OUTCOME_LABELS,
+  STATUS_LABELS,
+  STATUSES,
+  label,
+  message,
+  money,
+} from "./format";
 
 const REFRESH_MS = 2000;
 
@@ -84,6 +91,8 @@ export function Queue() {
               <th>Submitted</th>
               <th className="money">Claimed</th>
               <th>Status</th>
+              <th>Decision</th>
+              <th className="money">Payout</th>
             </tr>
           </thead>
           <tbody>
@@ -99,6 +108,16 @@ export function Queue() {
                 <td className="money">{money(claim.amount_claimed)}</td>
                 <td>
                   <StatusPill status={claim.status} />
+                </td>
+                <td>
+                  {claim.outcome && (
+                    <span className={`pill ${claim.outcome}`}>
+                      {OUTCOME_LABELS[claim.outcome]}
+                    </span>
+                  )}
+                </td>
+                <td className="money">
+                  {claim.payout !== null && money(claim.payout)}
                 </td>
               </tr>
             ))}

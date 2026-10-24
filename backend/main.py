@@ -131,7 +131,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/claims", operation_id="list_claims")
 def list_claims(conn: Db) -> list[dict[str, Any]]:
-    """List every claim in the queue with where it stands."""
+    """List every claim in the queue with where it stands and its decision."""
     rows = conn.execute("SELECT * FROM claims ORDER BY claim_id").fetchall()
     claims = []
     for row in rows:
@@ -146,6 +146,8 @@ def list_claims(conn: Db) -> list[dict[str, Any]]:
                 "summary": claim["summary"],
                 "amount_claimed": claim["amount_claimed"],
                 "submitted_on": claim["submitted_on"],
+                "outcome": row["outcome"],
+                "payout": row["payout"],
             }
         )
     return claims

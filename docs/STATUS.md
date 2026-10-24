@@ -65,7 +65,7 @@ If the backend restarts during a run, the claim stays in progress; `uv run -m ba
 
 React, Vite and TypeScript in `dashboard/`, in the brand's fonts and colors, light or dark with the system setting.
 
-- **Queue** (`#/`): counts for each status, a status filter, and every claim with its customer, type, summary, date, amount and status. It refreshes every two seconds.
+- **Queue** (`#/`): counts for each status, a status filter, and every claim with its customer, type, summary, date, amount claimed, status, decision and payout. It refreshes every two seconds.
 - **Claim** (`#/claims/CLM-1001`):
   - a Run agent button on a waiting claim
   - the agent's steps, updated every second while it works
@@ -76,8 +76,8 @@ React, Vite and TypeScript in `dashboard/`, in the brand's fonts and colors, lig
 
 ## Tests
 
-- **pytest:** 52 tests, in `backend/tests/` and `agent/tests/`. Agent tests use a stub model against the backend in-process.
-- **vitest:** 18 tests, in `dashboard/src/*.test.tsx`, with a stubbed `fetch`.
+- **pytest:** 54 tests, in `backend/tests/` and `agent/tests/`. Agent tests use a stub model against the backend in-process.
+- **vitest:** 19 tests, in `dashboard/src/*.test.tsx`, with a stubbed `fetch`.
 - **Playwright:** 4 tests, in `e2e/`, on their own servers (8001 and 5174) with the scripted model in `agent/tests/e2e_server.py`. They run safely while `npm run dev` is running.
 
 No test calls a real model, and nothing opens `data/evals/`.

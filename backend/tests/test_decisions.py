@@ -186,3 +186,12 @@ def test_run_hands_the_claim_to_the_runner():
 
 def test_agent_runner_is_the_agent():
     assert agent_runner() is run
+
+
+def test_the_queue_shows_each_decision():
+    decide("CLM-1002", "approve", 1250.0)
+    client.post("/api/claims/CLM-1002/finish", json={"note": "done"})
+    claims = {c["claim_id"]: c for c in client.get("/api/claims").json()}
+    assert claims["CLM-1002"]["outcome"] == "approve"
+    assert claims["CLM-1002"]["payout"] == 1250.0
+    assert claims["CLM-1001"]["outcome"] is None
