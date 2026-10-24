@@ -27,6 +27,7 @@ class ScriptedModel(BaseChatModel):
     """Reads the claim, approves the amount claimed, pays it, then says so."""
 
     step_seconds: float = STEP_SECONDS
+    fail: bool = False
 
     @property
     def _llm_type(self) -> str:
@@ -39,6 +40,8 @@ class ScriptedModel(BaseChatModel):
         self, messages: list[BaseMessage], *args: Any, **kwargs: Any
     ) -> ChatResult:
         time.sleep(self.step_seconds)
+        if self.fail:
+            raise RuntimeError("scripted failure")
         claim_id = str(messages[1].content).split()[-1].rstrip(".")
         results = [m for m in messages if isinstance(m, ToolMessage)]
         amount = (
