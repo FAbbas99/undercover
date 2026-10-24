@@ -67,15 +67,58 @@ def test_waits_while_the_run_is_in_progress(monkeypatch, capsys):
 
     monkeypatch.setattr(cli, "call", call)
     claim = cli.decide("CLM-1004")
+    assert claim is not None
     assert claim["status"] == "decided"
     assert capsys.readouterr().out.count("started") == 1
 
 
-def test_refuses_a_claim_that_is_not_waiting():
-    with pytest.raises(SystemExit, match="Refused: No claim CLM-9999"):
+def test_refuses_a_claim_that_is_not_waiting(capsys):
+    with pytest.raises(SystemExit) as exit_info:
         run_cli("CLM-9999")
+    assert exit_info.value.code == 1
+    assert "Refused: No claim CLM-9999" in capsys.readouterr().out
 
 
 def test_usage():
     with pytest.raises(SystemExit, match="Usage"):
-        run_cli()
+        run_cli("CLM-1001", "CLM-1002")
+
+
+def test_runs_every_waiting_claim(capsys):
+    use_model(ScriptedModel(step_seconds=0))
+    run_cli()
+    out = capsys.readouterr().out
+    assert out.startswith("25 claims are waiting.")
+    assert "CLM-1001  approve" in out
+    assert "Ran 25 claims: 10 awaiting_signoff, 15 decided" in out
+    assert "Refused" not in out
+    claims = TestClient(app).get("/api/claims").json()
+    assert not [c for c in claims if c["status"] == "waiting"]
+
+
+def test_skips_claims_that_are_not_waiting(capsys):
+    use_model(ScriptedModel(step_seconds=0))
+    run_cli("CLM-1001")
+    capsys.readouterr()
+    run_cli()
+    out = capsys.readouterr().out
+    assert out.startswith("24 claims are waiting.")
+    assert "\nCLM-1001\n" not in out
+    assert "Ran 24 claims" in out
+
+
+def test_carries_on_when_a_run_is_refused(monkeypatch, capsys):
+    use_model(ScriptedModel(step_seconds=0, fail=True))
+    monkeypatch.setattr(cli, "waiting_claims", lambda: ["CLM-1001", "CLM-9999"])
+    run_cli()
+    out = capsys.readouterr().out
+    assert "Refused: No claim CLM-9999" in out
+    assert "CLM-1001  no decision" in out
+    assert "Ran 1 claims: 1 waiting" in out
+    assert "Refused to start: 1" in out
+
+
+def test_nothing_waiting(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "waiting_claims", lambda: [])
+    run_cli()
+    assert capsys.readouterr().out == "No claims are waiting.\n"

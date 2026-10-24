@@ -6,7 +6,9 @@ The pilot from `docs/PLAN.md` is built: all six phases.
 
 - `uv sync` and `npm install`, once.
 - `npm run dev`: the backend on http://127.0.0.1:8000 and the dashboard on http://localhost:5173. The backend reloads when `backend/` or `agent/` changes.
-- Open a claim and click Run agent, or with the backend running, `uv run -m agent CLM-1001`, which starts the run through the backend, prints each step and then the decision. A run calls the model, using `OPENROUTER_API_KEY` from `.env`. Set `MODEL_NAME=openrouter/free` for no cost.
+- Open a claim and click Run agent. Or, with the backend running:
+  - `uv run -m agent`: works through every waiting claim, one at a time, printing each one's steps and decision, then a summary. Claims that are not waiting are skipped, and a claim the backend refuses to start is reported and the batch carries on. A full queue is 25 model calls.
+  - `uv run -m agent CLM-1001`: one claim. A run calls the model, using `OPENROUTER_API_KEY` from `.env`. Set `MODEL_NAME=openrouter/free` for no cost.
 - `uv run -m backend.reset`: starts the queue over, with every claim waiting.
 - `npm run check`: every check, including the end-to-end tests.
 - `npm run e2e:serve`: the end-to-end tests' servers, to look at by hand. The backend is on 8001 with a fresh database and a scripted model that never calls a real one, and the dashboard is on http://localhost:5174.
@@ -74,7 +76,7 @@ React, Vite and TypeScript in `dashboard/`, in the brand's fonts and colors, lig
 
 ## Tests
 
-- **pytest:** 48 tests, in `backend/tests/` and `agent/tests/`. Agent tests use a stub model against the backend in-process.
+- **pytest:** 52 tests, in `backend/tests/` and `agent/tests/`. Agent tests use a stub model against the backend in-process.
 - **vitest:** 18 tests, in `dashboard/src/*.test.tsx`, with a stubbed `fetch`.
 - **Playwright:** 4 tests, in `e2e/`, on their own servers (8001 and 5174) with the scripted model in `agent/tests/e2e_server.py`. They run safely while `npm run dev` is running.
 
