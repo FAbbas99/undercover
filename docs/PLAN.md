@@ -225,23 +225,24 @@ Success criteria:
 ## Phase 6: End-to-end tests, README and status
 
 - `playwright.config.ts` starts `e2e/server.py` on 8001 with a fresh database and the stub model, and Vite on 5174 pointed at it, with `reuseExistingServer: false`.
-- The existing health test moves to the new servers.
+- The existing health test is replaced by the queue test, which covers the same thing: the dashboard loads data from the backend.
 - Tests:
   - the queue lists 25 claims
   - running a small claim ends `Decided`
   - an over-limit claim is blocked, signed off and paid
   - the instructions page
-- `README.md` gets a short section on installing, running and checking. `docs/STATUS.md` describes what's built and how to run it.
+- `docs/STATUS.md` describes what's built and how to install, run and check it. Changed while building: the plan also had a section in `README.md`, but that is the course's own README, and a product section there would conflict with the course's updates. `AGENTS.md` says `docs/STATUS.md` is where each build says how to run it, so the instructions live there.
 
 Success criteria:
 
-- [ ] `npm run e2e` passes all tests, with `npm run dev` running at the same time.
-- [ ] After the e2e run, the dev database still shows 25 `waiting` claims if none were run by hand.
-- [ ] `docs/STATUS.md` covers:
+- [x] `npm run e2e` passes all tests, with `npm run dev` running at the same time.
+- [x] After the e2e run, the dev database still shows 25 `waiting` claims if none were run by hand.
+- [x] `docs/STATUS.md` covers:
   - the operations, the agent's tools and the pages
   - how to run the dev servers, start a run, reset the queue and run the checks
-- [ ] The README stays short, with no emojis.
-- [ ] `npm run check` passes in full: ruff, pyright, pytest at 80% or more, Prettier, ESLint, tsc, vitest at 80% or more and Playwright. No threshold lowered, rule turned off or file excluded.
+- [x] The README is unchanged (see above), and `docs/STATUS.md` is short, with no emojis.
+- [x] `npm run check` passes in full: ruff, pyright, pytest at 80% or more, Prettier, ESLint, tsc, vitest at 80% or more and Playwright. No threshold lowered, rule turned off or file excluded.
+- Result: `npm run check` passed in full while `npm run dev` was running. ruff, pyright and 42 pytest tests at 99.6%; Prettier, ESLint, tsc and 18 vitest tests at 99.3%; 4 Playwright tests. The dev queue still showed 25 waiting claims afterwards.
 
 ## How I'll work
 
