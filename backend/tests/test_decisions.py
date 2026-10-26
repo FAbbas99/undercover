@@ -3,7 +3,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from agent.main import run
+from agent.harness import run_claim
 from backend.db import connect
 from backend.main import agent_runner, app
 
@@ -185,7 +185,7 @@ def test_run_hands_the_claim_to_the_runner():
 
 
 def test_agent_runner_is_the_agent():
-    assert agent_runner() is run
+    assert agent_runner() is run_claim
 
 
 def test_the_queue_shows_each_decision():

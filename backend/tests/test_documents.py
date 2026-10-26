@@ -87,6 +87,6 @@ def test_the_instructions_are_written_from_the_documents():
     assert queue.startswith("# UnderCover Agent: running the queue")
     assert claim.startswith("# UnderCover Agent: working a claim")
     assert "claims manual" in claim
-    assert "get_manual_section" in claim
+    assert "the manual holds what the wording leaves open" in claim.lower()
     assert "data/evals" not in queue
     assert "data/evals" not in claim

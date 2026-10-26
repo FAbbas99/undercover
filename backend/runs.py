@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from agent.main import run_queue
+from agent.harness import run_queue
 from backend.db import record_step
 from backend.deps import Db, require
 

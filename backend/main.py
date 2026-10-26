@@ -10,7 +10,7 @@ from typing import Annotated, Any, Literal, Self
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, model_validator
 
-from agent.main import run
+from agent.harness import run_claim
 from backend import documents, runs
 from backend.db import record, record_step, records
 from backend.deps import Db, require
@@ -232,7 +232,7 @@ def get_settings(conn: Db) -> dict[str, float]:
 
 def agent_runner() -> Runner:
     """Return the function that runs the agent on a claim."""
-    return run
+    return run_claim
 
 
 @app.post("/api/claims/{claim_id}/run", operation_id="run_agent", status_code=202)

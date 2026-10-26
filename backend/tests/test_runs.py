@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 from fastapi.testclient import TestClient
 
-from agent.main import run_queue
+from agent.harness import run_queue
 from backend import runs
 from backend.db import connect
 from backend.main import agent_runner, app

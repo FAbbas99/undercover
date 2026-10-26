@@ -67,12 +67,15 @@ A run is one pass over the queue. The backend takes the lowest-numbered waiting 
 
 ## Agent
 
-`run(claim_id, thread_id)` in `agent/main.py`, on LangChain's `create_agent`. It uses `openai/gpt-6-luna` at low reasoning effort, or `MODEL_NAME` if set.
+Two agents on one harness, both LangChain's `create_agent`, in `agent/`:
 
-- It reads its instructions from `get_claim_instructions` at the start of each run.
-- Its tools are calls to the backend: `get_claim`, `list_wording_sections`, `get_wording_section`, `list_manual_sections`, `get_manual_section`, `record_decision` and `pay_claim`. It never receives a whole document.
-- A callback records each tool call as a step.
-- Every run ends with `finish_run`. If the model fails, the error is the last step and the claim goes back to waiting.
+- `api.py`: every call to the backend, in one place, with the base URL in `BACKEND_URL`.
+- `tools.py`: every tool. Each takes its claim or run from a `ToolRuntime` context, so the model never carries an id, and each records its own step.
+- `harness.py`: the harness. `run_claim(claim_id, thread_id)` decides one claim and `run_queue(run_id)` works a run. It uses `deepseek/deepseek-v4.1-flash` at low reasoning effort, or `MODEL_NAME` if set.
+
+The worker reads its instructions from `get_claim_instructions`, and its tools are `get_claim`, `list_wording_sections`, `get_wording_section`, `list_manual_sections`, `get_manual_section`, `record_decision` and `pay_claim`. It never receives a whole document. The runner reads `get_queue_instructions`, and its tools are `get_run`, `work_claim`, `set_run_item` and `finish_queue_run`; `work_claim` hands a claim to a fresh worker and waits for it.
+
+A claim's run ends with `finish_run`, whatever happens: the model's answer, an error, or `CLAIM_TIMEOUT_SECONDS` (120 by default). A claim left waiting for a worker's answer is not left in progress.
 
 If the backend restarts during a run, the claim stays in progress; `uv run -m backend.reset` starts the queue over.
 

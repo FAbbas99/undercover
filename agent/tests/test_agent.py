@@ -1,10 +1,17 @@
+"""The claim worker: its tools, its decisions, its failures and its timeout."""
+
+import time
+
 import pytest
 from fastapi.testclient import TestClient
+from langchain.tools import ToolRuntime
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 
-from agent import main
+from agent import api, harness, tools
+from agent.harness import run_claim
 from agent.tests.e2e_server import ScriptedModel
+from agent.tools import ClaimContext
 from backend.main import agent_runner, app
 
 client = TestClient(app)
@@ -29,6 +36,14 @@ class BrokenModel(StubModel):
         raise RuntimeError("model unavailable")
 
 
+class SlowModel(StubModel):
+    """A chat model that takes longer over a claim than a worker is given."""
+
+    def _generate(self, messages, *args, **kwargs):
+        time.sleep(0.5)
+        return super()._generate(messages, *args, **kwargs)
+
+
 def scripted(*calls, final="Done."):
     replies = [
         AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": str(i)}])
@@ -37,11 +52,10 @@ def scripted(*calls, final="Done."):
     return StubModel(messages=iter([*replies, AIMessage(content=final)]))
 
 
-def decision(claim_id, outcome, payout):
+def decision(outcome, payout):
     return (
         "record_decision",
         {
-            "claim_id": claim_id,
             "outcome": outcome,
             "payout": payout,
             "reason": "Covered under the plan.",
@@ -50,15 +64,25 @@ def decision(claim_id, outcome, payout):
     )
 
 
-@pytest.fixture(autouse=True)
-def in_process(monkeypatch):
-    monkeypatch.setattr(main, "backend", lambda: TestClient(app))
-    yield
-    app.dependency_overrides.clear()
+def call_tool(a_tool, *args):
+    """Call a tool's function directly, as the agent does with a runtime."""
+    return a_tool.func(*args)
+
+
+def runtime(claim_id="CLM-1001"):
+    """A tool's runtime, as the agent gives it one."""
+    return ToolRuntime(
+        state={},
+        context=ClaimContext(claim_id=claim_id),
+        config={},
+        stream_writer=lambda _: None,
+        tool_call_id="1",
+        store=None,
+    )
 
 
 def run_with(claim_id, llm):
-    app.dependency_overrides[agent_runner] = lambda: lambda c, t: main.run(c, t, llm)
+    app.dependency_overrides[agent_runner] = lambda: lambda c, t: run_claim(c, t, llm)
     assert client.post(f"/api/claims/{claim_id}/run").status_code == 202
     return client.get(f"/api/claims/{claim_id}").json()
 
@@ -71,10 +95,10 @@ def test_approve_and_pay():
     claim = run_with(
         "CLM-1001",
         scripted(
-            ("get_claim", {"claim_id": "CLM-1001"}),
+            ("get_claim", {}),
             ("get_wording_section", {"section": "3"}),
-            decision("CLM-1001", "approve", 420.0),
-            ("pay_claim", {"claim_id": "CLM-1001", "amount": 420.0}),
+            decision("approve", 420.0),
+            ("pay_claim", {"amount": 420.0}),
             final="Approved and paid $420.00.",
         ),
     )
@@ -84,7 +108,7 @@ def test_approve_and_pay():
     assert step_names(claim) == [
         "started",
         "get_claim",
-        "get_wording_section",
+        "read_wording",
         "record_decision",
         "pay_claim",
         "finished",
@@ -92,30 +116,72 @@ def test_approve_and_pay():
     assert claim["steps"][-1]["detail"] == "Approved and paid $420.00."
 
 
+def test_the_claim_page_shows_what_was_read():
+    claim = run_with(
+        "CLM-1001",
+        scripted(
+            ("get_wording_section", {"section": "5"}),
+            ("get_manual_section", {"section": "9"}),
+            decision("decline", 0),
+        ),
+    )
+    assert [(step["name"], step["detail"]) for step in claim["steps"]] == [
+        ("started", "The agent started work on the claim"),
+        ("read_wording", "5. Baggage and Personal Effects"),
+        ("read_manual", "9. Repeat claims"),
+        ("record_decision", "decline $0.00"),
+        ("finished", "Done."),
+    ]
+
+
+def test_no_tool_hands_over_a_whole_document():
+    app.dependency_overrides[agent_runner] = lambda: lambda c, t: None
+    client.post("/api/claims/CLM-1001/run")
+    wording = call_tool(tools.get_wording_section, runtime(), "5")
+    manual = call_tool(tools.get_manual_section, runtime(), "5")
+    assert wording.startswith("## 5. Baggage and Personal Effects")
+    assert len(wording) < 1500
+    assert manual.startswith("## 5. Documents and document requests")
+    assert "## 9. Repeat claims" not in manual
+
+
 def test_over_the_limit_payment_is_refused():
     claim = run_with(
         "CLM-1002",
         scripted(
-            decision("CLM-1002", "approve", 1250.0),
-            ("pay_claim", {"claim_id": "CLM-1002", "amount": 1250.0}),
+            decision("approve", 1250.0),
+            ("pay_claim", {"amount": 1250.0}),
         ),
     )
     assert claim["status"] == "awaiting_signoff"
     assert claim["payment"] is None
-    assert "pay_claim" in step_names(claim)
+    assert "pay_claim" not in step_names(claim)
 
 
-def test_pay_tool_returns_the_refusal():
+def test_the_pay_tool_answers_the_model_with_the_refusal():
     app.dependency_overrides[agent_runner] = lambda: lambda c, t: None
     client.post("/api/claims/CLM-1002/run")
-    main.record_decision.invoke(decision("CLM-1002", "approve", 1250.0)[1])
-    reply = main.pay_claim.invoke({"claim_id": "CLM-1002", "amount": 1250.0})
+    api.record_decision("CLM-1002", "approve", 1250.0, "Covered.", "3. Trip Delay")
+    reply = call_tool(tools.pay_claim, runtime("CLM-1002"), 1250.0)
     assert reply.startswith("Refused: A payout over 1,000.00 waits")
+
+
+def test_a_decision_is_only_recorded_once():
+    app.dependency_overrides[agent_runner] = lambda: lambda c, t: None
+    client.post("/api/claims/CLM-1001/run")
+    first = call_tool(
+        tools.record_decision, runtime(), "refer", 0, "Needs a look.", "8. Add-ons"
+    )
+    again = call_tool(
+        tools.record_decision, runtime(), "approve", 420.0, "Covered.", "3. Trip Delay"
+    )
+    assert first == "refer recorded"
+    assert again.startswith("Refused: CLM-1001 already has a decision")
 
 
 @pytest.mark.parametrize("outcome", ["decline", "refer"])
 def test_decline_and_refer(outcome):
-    claim = run_with("CLM-1003", scripted(decision("CLM-1003", outcome, 0)))
+    claim = run_with("CLM-1003", scripted(decision(outcome, 0)))
     assert claim["status"] == "decided"
     assert claim["decision"] == {
         "outcome": outcome,
@@ -130,11 +196,20 @@ def test_a_failing_model_leaves_the_claim_waiting():
     claim = run_with("CLM-1004", BrokenModel(messages=iter([])))
     assert claim["status"] == "waiting"
     assert claim["steps"][-1]["detail"] == "Error: model unavailable"
+    assert claim["failures"] == 1
+
+
+def test_a_slow_model_is_cut_off(monkeypatch):
+    monkeypatch.setattr(harness, "CLAIM_TIMEOUT_SECONDS", 0.05)
+    claim = run_with("CLM-1005", SlowModel(messages=iter([])))
+    assert claim["status"] == "waiting"
+    assert claim["steps"][-1]["detail"] == "Timed out after 0.05 seconds"
+    assert claim["failures"] == 1
 
 
 def test_a_missing_key_leaves_the_claim_waiting(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    app.dependency_overrides[agent_runner] = lambda: main.run
+    app.dependency_overrides[agent_runner] = lambda: run_claim
     client.post("/api/claims/CLM-1004/run")
     claim = client.get("/api/claims/CLM-1004").json()
     assert claim["status"] == "waiting"
@@ -156,9 +231,11 @@ def test_run_twice_is_refused():
 def test_model_name(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.delenv("MODEL_NAME", raising=False)
-    assert main.model().model_name == "openai/gpt-6-luna"
+    assert harness.model().model_name == "deepseek/deepseek-v4.1-flash"
+    assert harness.model().reasoning_effort == "low"
     monkeypatch.setenv("MODEL_NAME", "openrouter/free")
-    assert main.model().model_name == "openrouter/free"
+    assert harness.model().model_name == "openrouter/free"
+    assert harness.model().reasoning_effort is None
 
 
 def test_the_e2e_scripted_model():
@@ -172,6 +249,6 @@ def test_the_e2e_scripted_model():
 
 def test_rate_limited_calls_are_retried_for_about_a_minute(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-    llm = main.model()
-    assert llm.max_retries == main.MAX_RETRIES
-    assert llm.root_client.max_retries == main.MAX_RETRIES
+    llm = harness.model()
+    assert llm.max_retries == harness.MAX_RETRIES
+    assert llm.root_client.max_retries == harness.MAX_RETRIES

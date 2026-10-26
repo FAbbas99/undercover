@@ -108,14 +108,14 @@ Success criteria:
 
 Success criteria:
 
-- [ ] A stub test: a claim's steps are `started`, `get_claim`, the sections it read, `record_decision`, `pay_claim`, `finished`, and the read steps carry the section titles.
-- [ ] A test: the claim agent's system prompt is the text of `GET /api/instructions/claim`.
-- [ ] A test: no tool's reply is the whole wording or the whole manual.
-- [ ] A test: a model that takes longer than `CLAIM_TIMEOUT_SECONDS` (0.2 in the test) leaves the claim waiting with a step naming the timeout, and the claim's failure count is 1.
-- [ ] A test: the claim agent that fails twice leaves the claim waiting with a failure count of 2, and a new run does not take it.
-- [ ] The existing tests still pass, updated for the new tools: an approve and payment, an approval over the limit refused, a decline, a refer, and a model that raises.
-- [ ] A test: the default model is `deepseek/deepseek-v4.1-flash` at low reasoning effort, and `MODEL_NAME=openrouter/free` overrides it with no reasoning effort.
-- [ ] `npm run check:python` passes.
+- [x] A stub test: a claim's steps are `started`, `get_claim`, the sections it read, `record_decision`, `pay_claim`, `finished`, and the read steps carry the section titles.
+- [x] A test: the claim agent's system prompt is the text of `GET /api/instructions/claim`.
+- [x] A test: no tool's reply is the whole wording or the whole manual.
+- [x] A test: a model that takes longer than `CLAIM_TIMEOUT_SECONDS` (0.2 in the test) leaves the claim waiting with a step naming the timeout, and the claim's failure count is 1.
+- [x] A test: the claim agent that fails twice leaves the claim waiting with a failure count of 2, and a new run does not take it.
+- [x] The existing tests still pass, updated for the new tools: an approve and payment, an approval over the limit refused, a decline, a refer, and a model that raises.
+- [x] A test: the default model is `deepseek/deepseek-v4.1-flash` at low reasoning effort, and `MODEL_NAME=openrouter/free` overrides it with no reasoning effort.
+- [x] `npm run check:python` passes.
 
 ## Phase 4: The queue runner and the command line
 
@@ -129,14 +129,14 @@ Success criteria:
 
 Success criteria:
 
-- [ ] A stub test: a run of three claims works them in the order the model chooses, sets each item `done`, and ends with a summary; each claim holds its own steps, and the run is finished.
-- [ ] A stub test: a claim whose model fails once is worked again and succeeds; a claim that fails twice is marked `left_for_handler` and the run still finishes.
-- [ ] A stub test: a claim that fails does not stop the run, and the other claims are still decided.
-- [ ] A stub test: the runner cannot finish while an item is `to_do` (409), and finishing once every item is done works.
-- [ ] A test: the runner's system prompt is the text of `GET /api/instructions/queue`.
-- [ ] A test: a claim decided or paid twice is refused, and the refusal does not stop the run.
-- [ ] Tests on the command line: `uv run -m agent --cap 5` starts a capped run, prints each item and the summary, and `uv run -m agent CLM-1001` still runs one claim.
-- [ ] `npm run check:python` passes.
+- [x] A stub test: a run of three claims works them in the order the model chooses, sets each item `done`, and ends with a summary; each claim holds its own steps, and the run is finished.
+- [x] A stub test: a claim whose model fails once is worked again and succeeds; a claim that fails twice is marked `left_for_handler` and the run still finishes.
+- [x] A stub test: a claim that fails does not stop the run, and the other claims are still decided.
+- [x] A stub test: the runner cannot finish while an item is `to_do` (409), and finishing once every item is done works.
+- [x] A test: the runner's system prompt is the text of `GET /api/instructions/queue`.
+- [x] A test: a claim decided or paid twice is refused, and the refusal does not stop the run.
+- [x] Tests on the command line: `uv run -m agent --cap 5` starts a capped run, prints each item and the summary, and `uv run -m agent CLM-1001` still runs one claim.
+- [x] `npm run check:python` passes.
 
 ## Phase 5: The dashboard
 
