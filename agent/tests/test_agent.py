@@ -72,7 +72,7 @@ def test_approve_and_pay():
         "CLM-1001",
         scripted(
             ("get_claim", {"claim_id": "CLM-1001"}),
-            ("get_policy_wording", {}),
+            ("get_wording_section", {"section": "3"}),
             decision("CLM-1001", "approve", 420.0),
             ("pay_claim", {"claim_id": "CLM-1001", "amount": 420.0}),
             final="Approved and paid $420.00.",
@@ -84,7 +84,7 @@ def test_approve_and_pay():
     assert step_names(claim) == [
         "started",
         "get_claim",
-        "get_policy_wording",
+        "get_wording_section",
         "record_decision",
         "pay_claim",
         "finished",
@@ -144,7 +144,7 @@ def test_a_missing_key_leaves_the_claim_waiting(monkeypatch):
 def test_the_agent_uses_the_served_instructions():
     prompts.clear()
     run_with("CLM-1005", scripted())
-    assert prompts[0] == client.get("/api/instructions").json()["text"]
+    assert prompts[0] == client.get("/api/instructions/claim").json()["text"]
 
 
 def test_run_twice_is_refused():

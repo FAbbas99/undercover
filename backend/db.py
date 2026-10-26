@@ -16,6 +16,7 @@ SEED_FILES = [
     "handlers.json",
     "company.json",
     "policy_wording.md",
+    "claims_manual.md",
 ]
 
 SCHEMA = """
@@ -76,6 +77,7 @@ def seed(conn: sqlite3.Connection) -> None:
         ("setting", "deductible_applies_to", plans["deductible_applies_to"]),
         ("setting", "payout_approval_limit", company["payout_approval_limit"]),
         ("setting", "policy_wording", files["policy_wording.md"]),
+        ("setting", "claims_manual", files["claims_manual.md"]),
     ]
     conn.executemany(
         "INSERT INTO records VALUES (?, ?, ?)",

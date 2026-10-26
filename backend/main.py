@@ -12,9 +12,10 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, model_validator
 
 from agent.main import run
+from backend import documents
 from backend.db import connect, record, records
 
-INSTRUCTIONS = Path(__file__).parent / "instructions.md"
+HERE = Path(__file__).parent
 CUSTOMER_FIELDS = ("customer_id", "name", "customer_since", "previous_claims")
 
 app = FastAPI(title="UnderCover")
@@ -61,6 +62,34 @@ def database() -> Iterator[sqlite3.Connection]:
 
 
 Db = Annotated[sqlite3.Connection, Depends(database)]
+
+
+def split(conn: sqlite3.Connection, setting: str) -> documents.Document:
+    """Return one of the documents the seed loaded, split into sections."""
+    return documents.read_document(record(conn, "setting", setting))
+
+
+def wording(conn: sqlite3.Connection) -> documents.Document:
+    """Return the policy wording, split into sections."""
+    return split(conn, "policy_wording")
+
+
+def manual(conn: sqlite3.Connection) -> documents.Document:
+    """Return the claims manual, split into sections."""
+    return split(conn, "claims_manual")
+
+
+def section_or_404(document: documents.Document, number: str) -> documents.Section:
+    """Return one section of a document, or raise 404."""
+    try:
+        return documents.find(document, number)
+    except KeyError:
+        raise HTTPException(404, f"No section {number}") from None
+
+
+def instructions(name: str) -> dict[str, str]:
+    """Get one of the UnderCover Agent's instruction documents."""
+    return {"text": (HERE / f"instructions_{name}.md").read_text(encoding="utf-8")}
 
 
 def approval_limit(conn: sqlite3.Connection) -> float:
@@ -159,16 +188,40 @@ def get_claim(claim_id: str, conn: Db) -> dict[str, Any]:
     return claim_view(conn, claim_row(conn, claim_id))
 
 
-@app.get("/api/policy-wording", operation_id="get_policy_wording")
-def get_policy_wording(conn: Db) -> dict[str, str]:
-    """Get the policy wording, the contract that decisions follow."""
-    return {"text": record(conn, "setting", "policy_wording")}
+@app.get("/api/policy-wording/sections", operation_id="list_wording_sections")
+def list_wording_sections(conn: Db) -> list[documents.Section]:
+    """List the numbered sections of the policy wording."""
+    return documents.outline(wording(conn))
 
 
-@app.get("/api/instructions", operation_id="get_instructions")
-def get_instructions() -> dict[str, str]:
-    """Get the UnderCover Agent's instructions."""
-    return {"text": INSTRUCTIONS.read_text(encoding="utf-8")}
+@app.get("/api/policy-wording/{section}", operation_id="get_wording_section")
+def get_wording_section(section: str, conn: Db) -> documents.Section:
+    """Get one numbered section of the policy wording."""
+    return section_or_404(wording(conn), section)
+
+
+@app.get("/api/manual/sections", operation_id="list_manual_sections")
+def list_manual_sections(conn: Db) -> list[documents.Section]:
+    """List the numbered sections of the claims manual."""
+    return documents.outline(manual(conn))
+
+
+@app.get("/api/manual/{section}", operation_id="get_manual_section")
+def get_manual_section(section: str, conn: Db) -> documents.Section:
+    """Get one numbered section of the claims manual."""
+    return section_or_404(manual(conn), section)
+
+
+@app.get("/api/instructions/queue", operation_id="get_queue_instructions")
+def get_queue_instructions() -> dict[str, str]:
+    """Get the agent's instructions for running the queue."""
+    return instructions("queue")
+
+
+@app.get("/api/instructions/claim", operation_id="get_claim_instructions")
+def get_claim_instructions() -> dict[str, str]:
+    """Get the agent's instructions for working one claim."""
+    return instructions("claim")
 
 
 @app.get("/api/handlers", operation_id="list_handlers")

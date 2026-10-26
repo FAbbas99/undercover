@@ -17,7 +17,7 @@ The pilot from `docs/PLAN.md` is built: all six phases.
 
 FastAPI on SQLite, in `backend/`.
 
-- **Database:** `undercover.db` at the repo root, or the path in `UNDERCOVER_DB`. It is created and seeded on first use from seven named files in `data/`. It never loads `data/evals/`, `data/security/` or the claims manual.
+- **Database:** `undercover.db` at the repo root, or the path in `UNDERCOVER_DB`. It is created and seeded on first use from eight named files in `data/`. It never loads `data/evals/` or `data/security/`.
 - **Personal data:** customers' contact details stay in the database and are not served.
 - **Payments:** recorded only; no money moves.
 
@@ -26,8 +26,12 @@ Operations, each with an `operation_id`, a one-line docstring and no optional in
 - `health`: `GET /api/health`
 - `list_claims`: `GET /api/claims`
 - `get_claim`: `GET /api/claims/{claim_id}`, with policy, plan, add-ons, the customer's name and earlier claims, decision, payment and steps
-- `get_policy_wording`: `GET /api/policy-wording`
-- `get_instructions`: `GET /api/instructions`, the agent's instructions from `backend/instructions.md`
+- `list_wording_sections`: `GET /api/policy-wording/sections`, the numbered sections of the policy wording
+- `get_wording_section`: `GET /api/policy-wording/{section}`, one section, with its text
+- `list_manual_sections`: `GET /api/manual/sections`, the numbered sections of the claims manual
+- `get_manual_section`: `GET /api/manual/{section}`, one section, with its text
+- `get_queue_instructions`: `GET /api/instructions/queue`, from `backend/instructions_queue.md`
+- `get_claim_instructions`: `GET /api/instructions/claim`, from `backend/instructions_claim.md`
 - `list_handlers`: `GET /api/handlers`
 - `get_settings`: `GET /api/settings`, the $1,000 approval limit
 - `run_agent`: `POST /api/claims/{claim_id}/run`, starts the agent on a waiting claim in the background (202)
@@ -54,8 +58,8 @@ A claim's status is worked out from its record:
 
 `run(claim_id, thread_id)` in `agent/main.py`, on LangChain's `create_agent`. It uses `openai/gpt-6-luna` at low reasoning effort, or `MODEL_NAME` if set.
 
-- It reads its instructions from `get_instructions` at the start of each run.
-- It has four tools, each a call to the backend: `get_claim`, `get_policy_wording`, `record_decision` and `pay_claim`.
+- It reads its instructions from `get_claim_instructions` at the start of each run.
+- Its tools are calls to the backend: `get_claim`, `list_wording_sections`, `get_wording_section`, `list_manual_sections`, `get_manual_section`, `record_decision` and `pay_claim`. It never receives a whole document.
 - A callback records each tool call as a step.
 - Every run ends with `finish_run`. If the model fails, the error is the last step and the claim goes back to waiting.
 

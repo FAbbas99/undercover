@@ -65,17 +65,17 @@ The pilot's code organizes the work: it feeds the agent one claim at a time and 
 
 Success criteria:
 
-- [ ] `uv run pytest` passes new tests in `backend/tests/test_documents.py`:
+- [x] `uv run pytest` passes new tests in `backend/tests/test_documents.py`:
   - the manual splits into 14 sections, numbered 1 to 14, and the wording into 12
   - the manual's section 6 is titled "Working out the payout" and the wording's section 5 is "Baggage and Personal Effects"
   - the preamble and every section's text, joined in order, give the file's text exactly
   - a document with no `## ` headings gives one empty section list and the whole text as the preamble
-- [ ] Tests on the reads: `GET /api/manual/sections` lists 14 sections with titles, `GET /api/manual/6` returns the manual's section 6, `GET /api/policy-wording/sections` lists 12, `GET /api/policy-wording/5` returns the wording's section 5, and an unknown section on either returns 404.
-- [ ] A test: `GET /api/policy-wording` and `GET /api/instructions` are gone, both returning 404.
-- [ ] A test: the seed reads exactly the eight named files, and the text served by `GET /api/manual/9` is in `data/claims_manual.md`.
-- [ ] A test: `GET /api/instructions/queue` and `GET /api/instructions/claim` return the text of their files, the claim instructions name the manual, and neither mentions `data/evals`.
-- [ ] The existing test over `app.routes` passes with the larger set: every operation has an `operation_id`, a one-line docstring and no optional inputs.
-- [ ] `npm run check:python` passes.
+- [x] Tests on the reads: `GET /api/manual/sections` lists 14 sections with titles, `GET /api/manual/6` returns the manual's section 6, `GET /api/policy-wording/sections` lists 12, `GET /api/policy-wording/5` returns the wording's section 5, and an unknown section on either returns 404.
+- [x] A test: `GET /api/policy-wording` and `GET /api/instructions` are gone, both returning 404.
+- [x] A test: the seed reads exactly the eight named files, and the text served by `GET /api/manual/9` is in `data/claims_manual.md`.
+- [x] A test: `GET /api/instructions/queue` and `GET /api/instructions/claim` return the text of their files, the claim instructions name the manual, and neither mentions `data/evals`.
+- [x] The existing test over `app.routes` passes with the larger set: every operation has an `operation_id`, a one-line docstring and no optional inputs.
+- [x] `npm run check:python` passes.
 
 ## Phase 2: The run and its to-do list
 

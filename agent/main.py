@@ -45,9 +45,27 @@ def get_claim(claim_id: str) -> str:
 
 
 @tool
-def get_policy_wording() -> str:
-    """Get the policy wording, the contract that decisions follow."""
-    return json.loads(call("GET", "/api/policy-wording"))["text"]
+def list_wording_sections() -> str:
+    """List the numbered sections of the policy wording, the contract."""
+    return call("GET", "/api/policy-wording/sections")
+
+
+@tool
+def get_wording_section(section: str) -> str:
+    """Read one numbered section of the policy wording."""
+    return call("GET", f"/api/policy-wording/{section}")
+
+
+@tool
+def list_manual_sections() -> str:
+    """List the numbered sections of the claims manual."""
+    return call("GET", "/api/manual/sections")
+
+
+@tool
+def get_manual_section(section: str) -> str:
+    """Read one numbered section of the claims manual."""
+    return call("GET", f"/api/manual/{section}")
 
 
 @tool
@@ -77,7 +95,15 @@ def pay_claim(claim_id: str, amount: float) -> str:
     return call("POST", f"/api/claims/{claim_id}/payment", {"amount": amount})
 
 
-TOOLS = [get_claim, get_policy_wording, record_decision, pay_claim]
+TOOLS = [
+    get_claim,
+    list_wording_sections,
+    get_wording_section,
+    list_manual_sections,
+    get_manual_section,
+    record_decision,
+    pay_claim,
+]
 
 
 class StepRecorder(BaseCallbackHandler):
@@ -110,7 +136,7 @@ def model() -> ChatOpenAI:
 
 def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
     """Run the agent on one claim, finish the run and return its final reply."""
-    instructions = json.loads(call("GET", "/api/instructions"))["text"]
+    instructions = json.loads(call("GET", "/api/instructions/claim"))["text"]
     try:
         agent = create_agent(llm or model(), tools=TOOLS, system_prompt=instructions)
         result = agent.invoke(
