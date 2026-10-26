@@ -3,8 +3,7 @@
 import json
 import sqlite3
 import uuid
-from collections.abc import Callable, Iterator
-from contextlib import closing
+from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
@@ -12,13 +11,15 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, model_validator
 
 from agent.main import run
-from backend import documents
-from backend.db import connect, record, records
+from backend import documents, runs
+from backend.db import record, record_step, records
+from backend.deps import Db, require
 
 HERE = Path(__file__).parent
 CUSTOMER_FIELDS = ("customer_id", "name", "customer_since", "previous_claims")
 
 app = FastAPI(title="UnderCover")
+app.include_router(runs.router)
 
 Runner = Callable[[str, str], object]
 
@@ -53,15 +54,6 @@ class Step(BaseModel):
 
 class Finish(BaseModel):
     note: str
-
-
-def database() -> Iterator[sqlite3.Connection]:
-    """Open a database connection for one request."""
-    with closing(connect()) as conn:
-        yield conn
-
-
-Db = Annotated[sqlite3.Connection, Depends(database)]
 
 
 def split(conn: sqlite3.Connection, setting: str) -> documents.Document:
@@ -142,6 +134,7 @@ def claim_view(conn: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
     return {
         **claim,
         "status": status(conn, row),
+        "failures": row["failures"],
         "policy": policy,
         "plan": plan,
         "add_ons": [record(conn, "add_on", a) for a in policy["add_ons"]],
@@ -177,6 +170,7 @@ def list_claims(conn: Db) -> list[dict[str, Any]]:
                 "submitted_on": claim["submitted_on"],
                 "outcome": row["outcome"],
                 "payout": row["payout"],
+                "failures": row["failures"],
             }
         )
     return claims
@@ -241,22 +235,6 @@ def agent_runner() -> Runner:
     return run
 
 
-def require(condition: bool, message: str) -> None:
-    """Refuse the request with 409 unless the condition holds."""
-    if not condition:
-        raise HTTPException(409, message)
-
-
-def add_step_row(
-    conn: sqlite3.Connection, claim_id: str, name: str, detail: str
-) -> None:
-    """Record one step of a run."""
-    conn.execute(
-        "INSERT INTO steps (claim_id, name, detail) VALUES (?, ?, ?)",
-        (claim_id, name, detail),
-    )
-
-
 @app.post("/api/claims/{claim_id}/run", operation_id="run_agent", status_code=202)
 def run_agent(
     claim_id: str,
@@ -268,7 +246,7 @@ def run_agent(
     row = claim_row(conn, claim_id)
     require(status(conn, row) == "waiting", f"{claim_id} is not waiting")
     conn.execute("UPDATE claims SET in_progress = 1 WHERE claim_id = ?", (claim_id,))
-    add_step_row(conn, claim_id, "started", "The agent started work on the claim")
+    record_step(conn, claim_id, "started", "The agent started work on the claim")
     conn.commit()
     tasks.add_task(runner, claim_id, str(uuid.uuid4()))
     return claim_view(conn, claim_row(conn, claim_id))
@@ -279,7 +257,7 @@ def add_step(claim_id: str, step: Step, conn: Db) -> dict[str, str]:
     """Record a step the agent took on a claim in progress."""
     row = claim_row(conn, claim_id)
     require(row["in_progress"], f"{claim_id} is not in progress")
-    add_step_row(conn, claim_id, step.name, step.detail)
+    record_step(conn, claim_id, step.name, step.detail)
     conn.commit()
     return {"status": "recorded"}
 
@@ -289,8 +267,11 @@ def finish_run(claim_id: str, finish: Finish, conn: Db) -> dict[str, Any]:
     """End the agent's run on a claim, with a closing note."""
     row = claim_row(conn, claim_id)
     require(row["in_progress"], f"{claim_id} is not in progress")
-    add_step_row(conn, claim_id, "finished", finish.note)
-    conn.execute("UPDATE claims SET in_progress = 0 WHERE claim_id = ?", (claim_id,))
+    record_step(conn, claim_id, "finished", finish.note)
+    conn.execute(
+        "UPDATE claims SET in_progress = 0, failures = failures + ? WHERE claim_id = ?",
+        (0 if row["outcome"] is not None else 1, claim_id),
+    )
     conn.commit()
     return claim_view(conn, claim_row(conn, claim_id))
 

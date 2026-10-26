@@ -90,14 +90,14 @@ Success criteria:
 
 Success criteria:
 
-- [ ] A test: a database seeded with the pilot's schema opens, gains the new tables and the column, and keeps a decision it already held.
-- [ ] Tests on the cap: `POST /api/runs` with a cap of 5 makes a run of `CLM-1001` to `CLM-1005`, all `to_do`, leaves the other 20 waiting, and returns 202.
-- [ ] A test: a second run while one is in progress returns 409.
-- [ ] A test: a claim left in progress by an interrupted run goes back to waiting, with a step, when the next run starts.
-- [ ] Tests: `set_run_item` sets each of the four states; an unknown state returns 422; a claim that is not in the run returns 404.
-- [ ] Tests on the finish check: 409 naming the items while one is still `to_do`; 409 while one is `done` on a claim with no decision; 200 with the summary once every item is `done` or `left_for_handler`.
-- [ ] Tests on failures: `finish_run` with no decision raises the claim's failure count and returns it to waiting; a claim that has failed twice is not taken into a new run; `list_claims` shows the count.
-- [ ] `npm run check:python` passes.
+- [x] A test: a database seeded with the pilot's schema opens, gains the new tables and the column, and keeps a decision it already held.
+- [x] Tests on the cap: `POST /api/runs` with a cap of 5 makes a run of `CLM-1001` to `CLM-1005`, all `to_do`, leaves the other 20 waiting, and returns 202.
+- [x] A test: a second run while one is in progress returns 409.
+- [x] A test: a claim left in progress by an interrupted run goes back to waiting, with a step, when the next run starts.
+- [x] Tests: `set_run_item` sets each of the four states; an unknown state returns 422; a claim that is not in the run returns 404.
+- [x] Tests on the finish check: 409 naming the items while one is still `to_do`; 409 while one is `done` on a claim with no decision; 200 with the summary once every item is `done` or `left_for_handler`.
+- [x] Tests on failures: `finish_run` with no decision raises the claim's failure count and returns it to waiting; a claim that has failed twice is not taken into a new run; `list_claims` shows the count.
+- [x] `npm run check:python` passes.
 
 ## Phase 3: The claim worker
 

@@ -25,6 +25,7 @@ def test_list_claims():
         "submitted_on": "2026-06-24",
         "outcome": None,
         "payout": None,
+        "failures": 0,
     }
 
 

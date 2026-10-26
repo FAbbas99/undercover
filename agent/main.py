@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 from typing import Any, Literal
 
 import httpx
@@ -21,6 +22,11 @@ DEFAULT_MODEL = "openai/gpt-6-luna"
 # OpenRouter limits requests per minute. The client backs off up to 8 seconds per
 # retry, so 12 retries wait out about a minute instead of failing the claim.
 MAX_RETRIES = 12
+# A worker's claim is polled until it is decided or has failed.
+POLL_SECONDS = 0.5
+CLAIM_WAIT_SECONDS = 600
+# A run of 25 claims takes about seven steps per claim.
+QUEUE_STEPS = 300
 
 
 def backend() -> httpx.Client:
@@ -104,6 +110,105 @@ TOOLS = [
     record_decision,
     pay_claim,
 ]
+
+
+@tool
+def get_run(run_id: str) -> str:
+    """Get the run's to-do list, with where each claim has got to."""
+    return call("GET", f"/api/runs/{run_id}")
+
+
+@tool
+def work_claim(claim_id: str) -> str:
+    """Hand one claim to a fresh worker, wait for it and answer in a line."""
+    started = call("POST", f"/api/claims/{claim_id}/run")
+    if started.startswith("Refused"):
+        return f"{claim_id} failed: {started}"
+    deadline = time.monotonic() + CLAIM_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        claim = json.loads(call("GET", f"/api/claims/{claim_id}"))
+        if claim["status"] != "in_progress":
+            return claim_report(claim)
+        time.sleep(POLL_SECONDS)
+    call(
+        "POST",
+        f"/api/claims/{claim_id}/finish",
+        {"note": "No answer from the worker"},
+    )
+    return f"{claim_id} failed: no answer from the worker"
+
+
+@tool
+def set_run_item(
+    run_id: str,
+    claim_id: str,
+    state: Literal["to_do", "in_progress", "done", "left_for_handler"],
+    note: str,
+) -> str:
+    """Mark where a claim has got to in the run's to-do list."""
+    return call(
+        "POST",
+        f"/api/runs/{run_id}/items/{claim_id}",
+        {"state": state, "note": note},
+    )
+
+
+@tool
+def finish_queue_run(run_id: str, summary: str) -> str:
+    """Finish the run, with a short summary for the handlers."""
+    return call("POST", f"/api/runs/{run_id}/finish", {"summary": summary})
+
+
+QUEUE_TOOLS = [get_run, work_claim, set_run_item, finish_queue_run]
+
+
+def claim_report(claim: dict[str, Any]) -> str:
+    """Describe where a claim ended up, in one line."""
+    decision = claim["decision"]
+    if decision is None:
+        steps = claim["steps"]
+        detail = steps[-1]["detail"] if steps else "no steps"
+        return f"{claim['claim_id']} failed: {detail}"
+    return (
+        f"{claim['claim_id']} {decision['outcome']} ${decision['payout']:,.2f},"
+        f" status {claim['status']}"
+    )
+
+
+def abandon(run_id: str, note: str) -> str:
+    """Leave a run's remaining claims for a handler, and finish the run."""
+    run = json.loads(call("GET", f"/api/runs/{run_id}"))
+    for item in run["items"]:
+        if item["state"] in ("to_do", "in_progress"):
+            call(
+                "POST",
+                f"/api/runs/{run_id}/items/{item['claim_id']}",
+                {"state": "left_for_handler", "note": note},
+            )
+    call("POST", f"/api/runs/{run_id}/finish", {"summary": note})
+    return note
+
+
+def run_queue(run_id: str, llm: BaseChatModel | None = None) -> str:
+    """Work a run's to-do list, claim by claim, and finish with a summary."""
+    instructions = json.loads(call("GET", "/api/instructions/queue"))["text"]
+    try:
+        agent = create_agent(
+            llm or model(), tools=QUEUE_TOOLS, system_prompt=instructions
+        )
+        result = agent.invoke(
+            {"messages": [{"role": "user", "content": f"Work run {run_id}."}]},
+            config={
+                "configurable": {"thread_id": run_id},
+                "recursion_limit": QUEUE_STEPS,
+            },
+        )
+        note = result["messages"][-1].text or "Finished"
+    except Exception as error:
+        return abandon(run_id, f"The run stopped: {error}")
+    if json.loads(call("GET", f"/api/runs/{run_id}"))["finished_at"] is None:
+        return abandon(run_id, note)
+    return note
 
 
 class StepRecorder(BaseCallbackHandler):

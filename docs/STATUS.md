@@ -44,6 +44,13 @@ Operations, each with an `operation_id`, a one-line docstring and no optional in
   - the amount must be exactly the approved payout
   - over $1,000 it is refused (409) until a handler signs off
 - `sign_off`: `POST /api/claims/{claim_id}/sign-off`, a handler who may approve over the limit signs off, and the claim is paid
+- `start_run`: `POST /api/runs`, starts a run over the waiting claims, up to the cap (202)
+- `get_current_run`: `GET /api/runs/current`, the most recent run with its to-do list, or null
+- `get_run`: `GET /api/runs/{run_id}`, one run with its to-do list
+- `set_run_item`: `POST /api/runs/{run_id}/items/{claim_id}`, an item's state and note
+- `finish_queue_run`: `POST /api/runs/{run_id}/finish`, the run's summary; refused while an item is still to do or is done on a claim with no decision
+
+A claim that ends a run with no decision counts a failure. A claim that has failed twice is not taken into a run again and waits for a handler.
 
 A claim's status is worked out from its record:
 
@@ -53,6 +60,10 @@ A claim's status is worked out from its record:
 | `in_progress` | a run is under way |
 | `awaiting_signoff` | approved over the limit, not yet signed off |
 | `decided` | everything else that has a decision |
+
+## Runs
+
+A run is one pass over the queue. The backend takes the lowest-numbered waiting claims up to the cap, and the agent works them, keeping a to-do list of `to_do`, `in_progress`, `done` and `left_for_handler` items. The queue page shows it. One run at a time: a run left unfinished by a restart is closed, and its claims go back to waiting, when the next run starts.
 
 ## Agent
 

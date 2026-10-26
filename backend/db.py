@@ -20,7 +20,7 @@ SEED_FILES = [
 ]
 
 SCHEMA = """
-CREATE TABLE claims (
+CREATE TABLE IF NOT EXISTS claims (
     claim_id TEXT PRIMARY KEY,
     data TEXT NOT NULL,
     in_progress INTEGER NOT NULL DEFAULT 0,
@@ -29,17 +29,32 @@ CREATE TABLE claims (
     reason TEXT,
     policy_section TEXT,
     paid_amount REAL,
-    signed_off_by TEXT
+    signed_off_by TEXT,
+    failures INTEGER NOT NULL DEFAULT 0
 );
-CREATE TABLE records (
+CREATE TABLE IF NOT EXISTS records (
     kind TEXT, record_id TEXT, data TEXT, PRIMARY KEY (kind, record_id)
 );
-CREATE TABLE steps (
+CREATE TABLE IF NOT EXISTS steps (
     step_id INTEGER PRIMARY KEY AUTOINCREMENT,
     claim_id TEXT NOT NULL,
     at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     name TEXT NOT NULL,
     detail TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS runs (
+    run_id TEXT PRIMARY KEY,
+    started_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    finished_at TEXT,
+    cap INTEGER NOT NULL,
+    summary TEXT
+);
+CREATE TABLE IF NOT EXISTS run_items (
+    run_id TEXT NOT NULL,
+    claim_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (run_id, claim_id)
 );
 """
 
@@ -87,13 +102,35 @@ def seed(conn: sqlite3.Connection) -> None:
 
 
 def connect() -> sqlite3.Connection:
-    """Open the database, creating and seeding it on first use."""
+    """Open the database, creating, seeding and updating it as needed."""
     # FastAPI may open a request's connection and use it in different threads.
     conn = sqlite3.connect(db_path(), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     if not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'claims'").fetchone():
         seed(conn)
+    migrate(conn)
     return conn
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    """Add the tables and columns a database from an earlier build is missing."""
+    conn.executescript(SCHEMA)
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(claims)")}
+    if "failures" not in columns:
+        conn.execute(
+            "ALTER TABLE claims ADD COLUMN failures INTEGER NOT NULL DEFAULT 0"
+        )
+    conn.commit()
+
+
+def record_step(
+    conn: sqlite3.Connection, claim_id: str, name: str, detail: str
+) -> None:
+    """Record one step of a run."""
+    conn.execute(
+        "INSERT INTO steps (claim_id, name, detail) VALUES (?, ?, ?)",
+        (claim_id, name, detail),
+    )
 
 
 def record(conn: sqlite3.Connection, kind: str, record_id: str) -> Any:
