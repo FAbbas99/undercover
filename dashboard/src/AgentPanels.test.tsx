@@ -19,7 +19,7 @@ const started = { at: "2026-10-24T19:00:00Z", name: "started", detail: "" };
 const readClaim = {
   at: "2026-10-24T19:00:01Z",
   name: "get_claim",
-  detail: "{'claim_id': 'CLM-1001'}",
+  detail: "CLM-1001",
 };
 const finished = {
   at: "2026-10-24T19:00:05Z",
@@ -74,13 +74,44 @@ it("runs the agent and follows its steps until it decides", async () => {
   const steps = within(screen.getByRole("region", { name: "Agent steps" }));
   expect(steps.getAllByRole("listitem").map((li) => li.textContent)).toEqual([
     "19:00:00Started work on the claim",
-    "19:00:01Read the claim, policy and history{'claim_id': 'CLM-1001'}",
+    "19:00:01Read the claim, policy and historyCLM-1001",
     "19:00:05FinishedApproved and paid $420.00.",
   ]);
   expect(screen.queryByRole("button", { name: "Run agent" })).toBeNull();
   const calls = fetchMock.mock.calls.length;
   await new Promise((resolve) => setTimeout(resolve, 1500));
   expect(fetchMock.mock.calls).toHaveLength(calls);
+});
+
+it("shows the sections of the documents the agent read", async () => {
+  stubApi({
+    "GET /api/claims/CLM-1001": claim({
+      status: "decided",
+      decision: approved,
+      steps: [
+        started,
+        readClaim,
+        {
+          at: "2026-10-24T19:00:02Z",
+          name: "read_wording",
+          detail: "3. Trip Delay",
+        },
+        {
+          at: "2026-10-24T19:00:03Z",
+          name: "read_manual",
+          detail: "10. Meals without receipts",
+        },
+      ],
+    }),
+  });
+  render(<ClaimPage claimId="CLM-1001" />);
+  const steps = within(
+    await screen.findByRole("region", { name: "Agent steps" }),
+  );
+  expect(steps.getByText("Read a section of the policy wording")).toBeDefined();
+  expect(steps.getByText("3. Trip Delay")).toBeDefined();
+  expect(steps.getByText("Read a section of the claims manual")).toBeDefined();
+  expect(steps.getByText("10. Meals without receipts")).toBeDefined();
 });
 
 it("says when the agent cannot start", async () => {

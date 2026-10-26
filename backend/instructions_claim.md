@@ -32,7 +32,7 @@ Take the eligible amount of each item or expense: the amount claimed or the per-
 
 ## Explaining
 
-The reason is two or three plain sentences a handler can check: what is covered or not, and how you reached the payout. The policy section names the section you relied on, such as "5. Baggage and Personal Effects". Write for a colleague, not for the customer.
+The reason is two or three plain sentences a handler can check: what is covered or not, and how you reached the payout. The policy section names the section you relied on, such as "5. Baggage and Personal Effects". Write for a colleague, not for the customer, and write in plain text: the handlers see your words as you write them, so no markdown, no headings and no lists.
 
 ## What you cannot do
 

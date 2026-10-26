@@ -12,7 +12,7 @@ afterEach(() => {
 const rows = () => screen.getAllByRole("row").slice(1);
 
 it("lists every claim with its status and amount", async () => {
-  stubApi({ "GET /api/claims": summaries });
+  stubApi({ "GET /api/claims": summaries, "GET /api/runs/current": null });
   render(<Queue />);
   await screen.findByText("CLM-1001");
   expect(rows()).toHaveLength(3);
@@ -24,7 +24,7 @@ it("lists every claim with its status and amount", async () => {
 });
 
 it("counts the claims in each status", async () => {
-  stubApi({ "GET /api/claims": summaries });
+  stubApi({ "GET /api/claims": summaries, "GET /api/runs/current": null });
   render(<Queue />);
   await screen.findByText("CLM-1001");
   expect(screen.getByTestId("count-waiting").textContent).toBe("1");
@@ -34,7 +34,7 @@ it("counts the claims in each status", async () => {
 });
 
 it("filters by status", async () => {
-  stubApi({ "GET /api/claims": summaries });
+  stubApi({ "GET /api/claims": summaries, "GET /api/runs/current": null });
   render(<Queue />);
   await screen.findByText("CLM-1001");
   fireEvent.click(screen.getByRole("button", { name: "Waiting for sign-off" }));
@@ -48,11 +48,24 @@ it("filters by status", async () => {
 
 it("refreshes the queue", async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  const fetchMock = stubApi({ "GET /api/claims": summaries });
+  const fetchMock = stubApi({
+    "GET /api/claims": summaries,
+    "GET /api/runs/current": null,
+  });
   render(<Queue />);
   await screen.findByText("CLM-1001");
   await vi.advanceTimersByTimeAsync(2100);
   expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+});
+
+it("shows the failed attempts on a claim", async () => {
+  stubApi({
+    "GET /api/claims": [{ ...summaries[0], failures: 2 }, summaries[1]],
+    "GET /api/runs/current": null,
+  });
+  render(<Queue />);
+  await screen.findByText("CLM-1001");
+  expect(screen.getByText("2 failed attempts")).toBeDefined();
 });
 
 it("says when the queue cannot load", async () => {
@@ -66,7 +79,7 @@ it("says when the queue cannot load", async () => {
 });
 
 it("shows each claim's decision and payout", async () => {
-  stubApi({ "GET /api/claims": summaries });
+  stubApi({ "GET /api/claims": summaries, "GET /api/runs/current": null });
   render(<Queue />);
   await screen.findByText("CLM-1001");
   const cells = (claimId: string) =>

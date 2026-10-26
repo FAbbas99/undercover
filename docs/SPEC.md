@@ -17,11 +17,14 @@ We want an AI agent, the UnderCover Agent, to work the queue the way a handler d
 
 Our goal is to handle claims straight through, as accurately as our handlers do.
 
+The agent works the queue in one run. It plans the work as a to-do list, hands each claim to a fresh worker, and finishes with a short summary for the handlers. A run can be capped, so a trial on five claims costs little and leaves the rest of the queue waiting.
+
 ## What the team needs to see
 
 - The queue, with where each claim stands: waiting, in progress, waiting for sign-off or decided.
 - Each claim in full, with the agent's decision and its reasons.
 - What the agent is doing on a claim while it works, step by step.
+- The run's to-do list, with each claim to do, in progress, done or left for a handler, and the summary the run ends with.
 - The agent's instructions, read only.
 
 ## Rules

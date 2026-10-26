@@ -1,5 +1,6 @@
 export type Status = "waiting" | "in_progress" | "awaiting_signoff" | "decided";
 export type Outcome = "approve" | "decline" | "refer";
+export type RunState = "to_do" | "in_progress" | "done" | "left_for_handler";
 
 export interface ClaimSummary {
   claim_id: string;
@@ -11,6 +12,7 @@ export interface ClaimSummary {
   submitted_on: string;
   outcome: Outcome | null;
   payout: number | null;
+  failures: number;
 }
 
 export interface Item {
@@ -89,9 +91,25 @@ export interface Step {
   detail: string;
 }
 
+export interface RunItem {
+  claim_id: string;
+  state: RunState;
+  note: string;
+}
+
+export interface Run {
+  run_id: string;
+  started_at: string;
+  finished_at: string | null;
+  cap: number;
+  summary: string | null;
+  items: RunItem[];
+}
+
 export interface Claim {
   claim_id: string;
   status: Status;
+  failures: number;
   claim_type: string;
   summary: string;
   submitted_on: string;
@@ -144,8 +162,12 @@ function post<T>(path: string, body: unknown): Promise<T> {
 export const listClaims = () => request<ClaimSummary[]>("/api/claims");
 export const getClaim = (id: string) => request<Claim>(`/api/claims/${id}`);
 export const listHandlers = () => request<Handler[]>("/api/handlers");
-export const getInstructions = () =>
-  request<{ text: string }>("/api/instructions");
+export const getQueueInstructions = () =>
+  request<{ text: string }>("/api/instructions/queue");
+export const getClaimInstructions = () =>
+  request<{ text: string }>("/api/instructions/claim");
+export const getCurrentRun = () => request<Run | null>("/api/runs/current");
+export const startRun = (cap: number) => post<Run>("/api/runs", { cap });
 export const runAgent = (id: string) =>
   post<Claim>(`/api/claims/${id}/run`, {});
 export const signOff = (id: string, handlerId: string) =>

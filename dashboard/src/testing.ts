@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Claim, ClaimSummary, Handler } from "./api";
+import type { Claim, ClaimSummary, Handler, Run } from "./api";
 
 export const summaries: ClaimSummary[] = [
   {
@@ -12,6 +12,7 @@ export const summaries: ClaimSummary[] = [
     submitted_on: "2026-06-24",
     outcome: null,
     payout: null,
+    failures: 0,
   },
   {
     claim_id: "CLM-1002",
@@ -23,6 +24,7 @@ export const summaries: ClaimSummary[] = [
     submitted_on: "2026-06-25",
     outcome: "approve",
     payout: 1250,
+    failures: 0,
   },
   {
     claim_id: "CLM-1003",
@@ -34,6 +36,7 @@ export const summaries: ClaimSummary[] = [
     submitted_on: "2026-06-26",
     outcome: "refer",
     payout: 0,
+    failures: 0,
   },
 ];
 
@@ -56,6 +59,7 @@ export function claim(overrides: Partial<Claim> = {}): Claim {
   return {
     claim_id: "CLM-1001",
     status: "waiting",
+    failures: 0,
     claim_type: "trip_delay",
     summary: "Flight home canceled",
     submitted_on: "2026-06-24",
@@ -131,6 +135,19 @@ export function claim(overrides: Partial<Claim> = {}): Claim {
     ...overrides,
   };
 }
+
+export const run: Run = {
+  run_id: "RUN-1",
+  started_at: "2026-10-24T19:00:00Z",
+  finished_at: null,
+  cap: 3,
+  summary: null,
+  items: [
+    { claim_id: "CLM-1001", state: "done", note: "approve $420.00, decided" },
+    { claim_id: "CLM-1002", state: "in_progress", note: "working" },
+    { claim_id: "CLM-1003", state: "to_do", note: "" },
+  ],
+};
 
 export function stubApi(routes: Record<string, unknown>) {
   const fetchMock = vi.fn((path: string, init?: RequestInit) => {

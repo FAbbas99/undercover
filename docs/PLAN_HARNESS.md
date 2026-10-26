@@ -150,10 +150,10 @@ Success criteria:
 
 Success criteria:
 
-- [ ] vitest tests with a stubbed `fetch`: the run panel starts a run with the cap typed in and is disabled while a run is in progress; the to-do list renders every item with its state; the summary shows once the run has finished; a claim that failed twice is marked; the read steps show the section titles; the instructions page shows both documents and has no input, textarea or contenteditable.
-- [ ] In the browser against `npm run e2e:serve`: starting a run capped at five shows the to-do list filling in and being ticked off, and the summary at the end.
-- [ ] In the browser against `npm run e2e:serve`: a claim's steps include the sections the agent read, named as the manual names them.
-- [ ] `npm run check:ts` passes with coverage of 80% or more.
+- [x] vitest tests with a stubbed `fetch`: the run panel starts a run with the cap typed in and is disabled while a run is in progress; the to-do list renders every item with its state; the summary shows once the run has finished; a claim that failed twice is marked; the read steps show the section titles; the instructions page shows both documents and has no input, textarea or contenteditable.
+- [x] In the browser against `npm run e2e:serve`: starting a run capped at five shows the to-do list filling in and being ticked off, and the summary at the end.
+- [x] In the browser against `npm run e2e:serve`: a claim's steps include the sections the agent read, named as the manual names them.
+- [x] `npm run check:ts` passes with coverage of 80% or more.
 
 ## Phase 6: End-to-end tests, the documents and the full check
 
@@ -165,12 +165,13 @@ Success criteria:
 
 Success criteria:
 
-- [ ] `npm run e2e` passes, with `npm run dev` running at the same time.
-- [ ] A test in `e2e/`: a run capped at five leaves the other 20 claims waiting, and the run's to-do list and summary are on the queue page.
-- [ ] `docs/SPEC.md` no longer says the manual is "Not for now", and describes the run, the to-do list and the summary.
-- [ ] `docs/TECH_STACK.md` and `docs/STATUS.md` describe the product as it now is.
-- [ ] `npm run check` passes in full: ruff, pyright, pytest at 80% or more, Prettier, ESLint, tsc, vitest at 80% or more and Playwright. No threshold lowered, rule turned off or file excluded.
-- [ ] A live run, with `OPENROUTER_API_KEY` in `.env`: `uv run -m backend.reset`, then a run capped at five on `deepseek/deepseek-v4.1-flash`. I report the decisions, anything left for a handler, the steps on one claim, and the cost from OpenRouter's dashboard. A capped run of five costs a few cents.
+- [x] `npm run e2e` passes, with `npm run dev` running at the same time.
+- [x] A test in `e2e/`: a run capped at five leaves the other 20 claims waiting, and the run's to-do list and summary are on the queue page.
+- [x] `docs/SPEC.md` no longer says the manual is "Not for now", and describes the run, the to-do list and the summary.
+- [x] `docs/TECH_STACK.md` and `docs/STATUS.md` describe the product as it now is.
+- [x] `npm run check` passes in full: ruff, pyright, pytest at 80% or more, Prettier, ESLint, tsc, vitest at 80% or more and Playwright. No threshold lowered, rule turned off or file excluded.
+- [x] A live run, with `OPENROUTER_API_KEY` in `.env`: `uv run -m backend.reset`, then a run capped at five on `deepseek/deepseek-v4.1-flash`. I report the decisions, anything left for a handler, the steps on one claim, and the cost from OpenRouter's dashboard. A capped run of five costs a few cents.
+- Result of the live run: five claims worked on its own in about two minutes. CLM-1001 $420.00, CLM-1002 $580.00, CLM-1004 $186.00 and CLM-1005 $243.00 decided and paid; CLM-1003 approved for $3,750.00 and awaiting a handler's sign-off; the other 20 claims left waiting. The cost was $0.0252. CLM-1002's steps show the four sections of the wording and the six sections of the manual it read, and no whole document. Found while checking: the model wrote markdown in its closing note, which the handlers see as typed, so the claim instructions now ask for plain text.
 
 ## How I'll work
 

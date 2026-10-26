@@ -245,6 +245,21 @@ thead th.money {
   white-space: nowrap;
 }
 
+.pill.to_do {
+  background: var(--subtle);
+  color: var(--muted);
+}
+
+.pill.done {
+  background: var(--sea-green);
+  color: var(--midnight);
+}
+
+.pill.left_for_handler {
+  background: var(--marigold);
+  color: var(--midnight);
+}
+
 .pill.waiting {
   background: var(--cerulean);
   color: #ffffff;
@@ -403,4 +418,26 @@ thead th.money {
   border-radius: 10px;
   padding: 0.6rem 0.9rem;
   margin-bottom: 0.5rem;
+}
+
+.todo {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.todo li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+}
+
+.todo .detail {
+  color: var(--muted);
+}
+
+.summary {
+  margin-top: 1rem;
+  white-space: pre-line;
 }

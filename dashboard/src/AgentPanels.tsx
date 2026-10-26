@@ -11,7 +11,8 @@ import { label, message, money } from "./format";
 const STEP_LABELS: Record<string, string> = {
   started: "Started work on the claim",
   get_claim: "Read the claim, policy and history",
-  get_policy_wording: "Read the policy wording",
+  read_wording: "Read a section of the policy wording",
+  read_manual: "Read a section of the claims manual",
   record_decision: "Recorded a decision",
   pay_claim: "Asked to pay the claim",
   finished: "Finished",

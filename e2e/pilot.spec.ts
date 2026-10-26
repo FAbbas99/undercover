@@ -52,3 +52,21 @@ test("the agent's instructions are shown read only", async ({ page }) => {
     panel.locator("input, textarea, select, [contenteditable]"),
   ).toHaveCount(0);
 });
+
+test("a run works the claims it takes and leaves the rest", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const run = page.getByRole("region", { name: "Queue run" });
+  const waiting = page.getByTestId("count-waiting");
+  await expect(waiting).toBeVisible();
+  const before = Number(await waiting.textContent());
+
+  await run.getByLabel("Claims to work").fill("5");
+  await run.getByRole("button", { name: "Start run" }).click();
+
+  await expect(run.locator(".todo li")).toHaveCount(5);
+  await expect(run.getByText("5 of 5 done.")).toBeVisible({ timeout: 30_000 });
+  await expect(run.getByText("Worked 5 claims.")).toBeVisible();
+  await expect(waiting).toHaveText(String(before - 5));
+});

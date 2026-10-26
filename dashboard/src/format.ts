@@ -1,4 +1,4 @@
-import type { Outcome, Status } from "./api";
+import type { Outcome, RunState, Status } from "./api";
 
 const usd = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -19,6 +19,13 @@ export const STATUS_LABELS: Record<Status, string> = {
   in_progress: "In progress",
   awaiting_signoff: "Waiting for sign-off",
   decided: "Decided",
+};
+
+export const RUN_STATE_LABELS: Record<RunState, string> = {
+  to_do: "To do",
+  in_progress: "In progress",
+  done: "Done",
+  left_for_handler: "Left for a handler",
 };
 
 export const OUTCOME_LABELS: Record<Outcome, string> = {

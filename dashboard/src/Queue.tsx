@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listClaims, type ClaimSummary, type Status } from "./api";
+import { RunPanel } from "./RunPanels";
 import {
   OUTCOME_LABELS,
   STATUS_LABELS,
@@ -47,6 +48,7 @@ export function Queue() {
 
   return (
     <section aria-label="Claims queue">
+      <RunPanel />
       <div className="counts">
         {STATUSES.map((status) => (
           <div className="count" key={status}>
@@ -100,6 +102,12 @@ export function Queue() {
               <tr key={claim.claim_id}>
                 <td className="mono">
                   <a href={`#/claims/${claim.claim_id}`}>{claim.claim_id}</a>
+                  {claim.failures > 0 && (
+                    <div className="muted">
+                      {claim.failures} failed{" "}
+                      {claim.failures === 1 ? "attempt" : "attempts"}
+                    </div>
+                  )}
                 </td>
                 <td>{claim.customer_name}</td>
                 <td>{label(claim.claim_type)}</td>

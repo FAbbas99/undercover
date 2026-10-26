@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
-import { getInstructions } from "./api";
+import { getClaimInstructions, getQueueInstructions } from "./api";
 import { message } from "./format";
 
+interface Documents {
+  queue: string;
+  claim: string;
+}
+
 export function Instructions() {
-  const [text, setText] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<Documents | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getInstructions().then(
-      (loaded) => {
-        setText(loaded.text);
+    Promise.all([getQueueInstructions(), getClaimInstructions()]).then(
+      ([queue, claim]) => {
+        setDocuments({ queue: queue.text, claim: claim.text });
       },
       (failure: unknown) => {
         setError(message(failure));
@@ -24,12 +29,17 @@ export function Instructions() {
     <section className="panel" aria-label="Agent instructions">
       <h2>The UnderCover Agent's instructions</h2>
       <p className="muted">
-        Read only. The agent reads these at the start of every claim.
+        Read only. The agent reads these at the start of every run.
       </p>
-      {text === null ? (
+      {documents === null ? (
         <p className="muted">Loading the instructions</p>
       ) : (
-        <pre className="instructions">{text}</pre>
+        <>
+          <h3>Running the queue</h3>
+          <pre className="instructions">{documents.queue}</pre>
+          <h3>Working a claim</h3>
+          <pre className="instructions">{documents.claim}</pre>
+        </>
       )}
     </section>
   );

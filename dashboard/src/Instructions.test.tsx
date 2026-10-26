@@ -8,14 +8,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("shows the instructions with nothing to edit", async () => {
+it("shows both documents with nothing to edit", async () => {
   stubApi({
-    "GET /api/instructions": { text: "# UnderCover Agent\n\nDecide claims." },
+    "GET /api/instructions/queue": { text: "Work the run's to-do list." },
+    "GET /api/instructions/claim": { text: "Decide the claim." },
   });
   const { container } = render(<Instructions />);
-  expect((await screen.findByText(/Decide claims\./)).textContent).toBe(
-    "# UnderCover Agent\n\nDecide claims.",
-  );
+  expect(
+    (await screen.findByText("Work the run's to-do list.")).textContent,
+  ).toBe("Work the run's to-do list.");
+  expect(screen.getByText("Decide the claim.")).toBeDefined();
+  expect(screen.getByText("Running the queue")).toBeDefined();
+  expect(screen.getByText("Working a claim")).toBeDefined();
   expect(
     container.querySelectorAll("input, textarea, select, [contenteditable]"),
   ).toHaveLength(0);
@@ -26,7 +30,7 @@ it("says when the instructions cannot load", async () => {
   render(<Instructions />);
   expect(
     await screen.findByText(
-      "Could not load the instructions: No route GET /api/instructions",
+      "Could not load the instructions: No route GET /api/instructions/queue",
     ),
   ).toBeDefined();
 });
