@@ -67,6 +67,7 @@ class ScriptedModel(BaseChatModel):
         amount = json.loads(results[0])["amount_claimed"] if results else 0.0
         calls: list[tuple[str, dict[str, Any]]] = [
             ("get_claim", {}),
+            ("get_wording_section", {"section": "3"}),
             (
                 "record_decision",
                 {

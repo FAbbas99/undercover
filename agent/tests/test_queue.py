@@ -79,6 +79,7 @@ def test_each_claim_keeps_its_own_steps():
     assert names_of("CLM-1001") == [
         "started",
         "get_claim",
+        "read_wording",
         "record_decision",
         "pay_claim",
         "finished",
@@ -86,6 +87,7 @@ def test_each_claim_keeps_its_own_steps():
     assert names_of("CLM-1002") == [
         "started",
         "get_claim",
+        "read_wording",
         "record_decision",
         "finished",
     ]

@@ -16,6 +16,10 @@ test("the agent decides and pays a small claim", async ({ page }) => {
   await expect(
     steps.getByText("Read the claim, policy and history"),
   ).toBeVisible();
+  await expect(
+    steps.getByText("Read a section of the policy wording"),
+  ).toBeVisible();
+  await expect(steps.getByText("3. Trip Delay")).toBeVisible();
   await expect(title.getByText("Decided")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("Paid $186.00")).toBeVisible();
   await expect(steps.getByText("Finished")).toBeVisible();
@@ -66,6 +70,9 @@ test("a run works the claims it takes and leaves the rest", async ({
   await run.getByRole("button", { name: "Start run" }).click();
 
   await expect(run.locator(".todo li")).toHaveCount(5);
+  await expect(run.getByText("In progress").first()).toBeVisible({
+    timeout: 30_000,
+  });
   await expect(run.getByText("5 of 5 done.")).toBeVisible({ timeout: 30_000 });
   await expect(run.getByText("Worked 5 claims.")).toBeVisible();
   await expect(waiting).toHaveText(String(before - 5));
